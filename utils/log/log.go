@@ -1,31 +1,47 @@
 package log
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 	"os"
-	"strconv"
+	"runtime"
+	"runtime/debug"
 	"strings"
 )
+
+const (
+	LevelPanic = slog.Level(16)
+)
+
+var LevelNames = map[slog.Leveler]string{
+	LevelPanic: "PANIC",
+}
 
 func Init() {
 	var level = new(slog.LevelVar)
 
 	config := &slog.HandlerOptions{
-		AddSource: true,
-		Level:     level,
+		Level: level,
 		ReplaceAttr: func(groups []string, attribute slog.Attr) slog.Attr {
-			if attribute.Key == slog.TimeKey {
+			switch attribute.Key {
+			case slog.TimeKey:
 				return slog.String("timestamp", attribute.Value.Time().Format("2006-01-02 3:04:05 PM"))
 
-			} else if attribute.Key == slog.SourceKey {
-				var (
-					source   = attribute.Value.Any().(*slog.Source)
-					id       = strings.LastIndex(source.File, "/")
-					line     = strconv.Itoa(source.Line)
-					filename = source.File[id+1:]
-				)
+			case slog.LevelKey:
+				level := attribute.Value.Any().(slog.Level)
 
-				return slog.String(slog.SourceKey, slog.StringValue(filename+":"+line).String())
+				label, exists := LevelNames[level]
+				if !exists {
+					label = level.String()
+				}
+				attribute.Value = slog.StringValue(label)
+
+				return attribute
+
+			case slog.MessageKey:
+				attribute.Key = "message"
+				return attribute
 			}
 
 			return attribute
@@ -49,7 +65,13 @@ func attributes(level slog.Level, msg string, args ...any) {
 		logger.Warn(msg)
 
 	case slog.LevelError:
-		logger.Error(msg)
+		_, filename, line, ok := runtime.Caller(2)
+		if !ok {
+			filename = "unknown"
+			line = 0
+		}
+
+		logger.With("source", fmt.Sprintf("%s:%d", filename, line)).Error(msg)
 	}
 }
 
@@ -63,4 +85,22 @@ func Warn(msg string, args ...any) {
 
 func Error(msg string, args ...any) {
 	attributes(slog.LevelError, msg, args...)
+}
+
+func Panic(args ...any) {
+	if msg := recover(); msg != nil {
+		_, filename, line, ok := runtime.Caller(2)
+		if !ok {
+			filename = "unknown"
+			line = 0
+		}
+
+		var logger = slog.With(
+			slog.Group("keys", args...),
+			slog.String("source", fmt.Sprintf("%s:%d", filename, line)),
+			slog.Any("trace", strings.Split(string(debug.Stack()), "\n")),
+		)
+
+		logger.Log(context.TODO(), LevelPanic, slog.AnyValue(msg).String())
+	}
 }
