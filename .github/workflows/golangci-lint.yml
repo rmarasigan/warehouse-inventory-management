@@ -1,0 +1,59 @@
+# The name of the workflow.
+name: golangci-lint
+# Specifies the trigger for this workflow.
+# Reference: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+# Modify the default permissions granted to the 'GITHUB_TOKEN'.
+# All of the permissions that are not defined are set to 'none'.
+# Reference: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+permissions:
+  # Allow read access to the content for analysis
+  contents: read
+
+# Map of variables that are available to the steps of all jobs in the workflow.
+# Reference: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#env
+env:
+  GO_VERSION: 1.21
+  GOLANGCI_LINT_VERSION: latest
+
+# A workflow run that is made up of one or more jobs.
+# Reference:: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#env
+jobs:
+  # Defines a job unique identifier (id).
+  golangci:
+    # Defines a job name.
+    name: golangci-lint
+    # To run on the latest version of an Ubuntu Linux runner.
+    runs-on: ubuntu-latest
+    # A sequence of tasks.
+    steps:
+      # Checks out your repository.
+      # actions/checkout: https://github.com/actions/checkout
+      - name: action-checkout
+        uses: actions/checkout@v4
+      
+      # Install the specified version of Go.
+      # actions/setup-go: https://github.com/actions/setup-go
+      - name: go-setup
+        uses: actions/setup-go@v5
+        with:
+          cache: false
+          go-version: ${{ env.GO_VERSION }}
+
+      # Check and get Go dependencies.
+      - name: go-dependencies
+        run: |
+          go mod tidy
+      
+      # Install the specified version of golangci-lint.
+      # golangci/golangci-lint-action: https://github.com/golangci/golangci-lint-action
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-mode: goinstall
