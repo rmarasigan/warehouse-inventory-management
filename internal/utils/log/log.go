@@ -11,10 +11,12 @@ import (
 )
 
 const (
+	LevelOK    = slog.Level(2)
 	LevelPanic = slog.Level(16)
 )
 
 var LevelNames = map[slog.Leveler]string{
+	LevelOK:    "OK",
 	LevelPanic: "PANIC",
 }
 
@@ -58,6 +60,9 @@ func attributes(level slog.Level, msg string, args ...any) {
 	)
 
 	switch level {
+	case LevelOK:
+		logger.Log(context.TODO(), LevelOK, msg)
+
 	case slog.LevelInfo:
 		logger.Info(msg)
 
@@ -73,6 +78,10 @@ func attributes(level slog.Level, msg string, args ...any) {
 
 		logger.With("source", fmt.Sprintf("%s:%d", filename, line)).Error(msg)
 	}
+}
+
+func OK(msg string, args ...any) {
+	attributes(LevelOK, msg, args...)
 }
 
 func Info(msg string, args ...any) {
