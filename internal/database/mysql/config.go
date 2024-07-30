@@ -1,18 +1,18 @@
 package mysql
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/trail"
 )
 
 var (
 	cfg      config
-	database *sql.DB
+	database *sqlx.DB
 	mysql    string = "mysql"
 )
 
@@ -59,7 +59,8 @@ func Connect() {
 		// Data Source Name
 		var dsn = fmt.Sprintf("%s:%s@/%s", cfg.User, cfg.Password, cfg.DatabaseName)
 
-		db, err := sql.Open(mysql, dsn)
+		// Connects to the database and attempts a ping.
+		db, err := sqlx.Connect(mysql, dsn)
 		if err != nil {
 			panic(err)
 		}
@@ -74,13 +75,19 @@ func Connect() {
 		// connection is closed by MySQL.
 		db.SetConnMaxLifetime(time.Second * 270)
 
-		// Verifies a connection to the database is still alive.
-		err = db.Ping()
+		database = db
+		trail.OK("MySQL connection established.")
+	}
+}
+
+// Close closes the database connection.
+func Close() {
+	if database != nil {
+		err := database.Close()
 		if err != nil {
 			panic(err)
 		}
 
-		database = db
-		trail.OK("MySQL connection established.")
+		trail.Info("MySQL connection closed.")
 	}
 }
