@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/trail"
 )
 
 var (
@@ -41,6 +42,8 @@ func SetDatabaseName(dbname string) {
 // If the DSN username is not defined, it defaults to 'root'.
 func Connect() {
 	if database == nil {
+		trail.Info("Establishing MySQL connection...")
+
 		if strings.TrimSpace(cfg.User) == "" {
 			cfg.User = "root"
 		}
@@ -71,6 +74,13 @@ func Connect() {
 		// connection is closed by MySQL.
 		db.SetConnMaxLifetime(time.Second * 270)
 
+		// Verifies a connection to the database is still alive.
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
+
 		database = db
+		trail.OK("MySQL connection established.")
 	}
 }
