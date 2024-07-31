@@ -88,6 +88,7 @@ func Close() {
 			panic(err)
 		}
 
+		database = nil
 		trail.Info("MySQL connection closed.")
 	}
 }
