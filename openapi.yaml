@@ -1,0 +1,109 @@
+openapi: 3.1.0
+
+info:
+  version: 1.0.0
+  title: Warehouse Inventory Management
+
+servers:
+  - url: 'http://localhost:8080/api'
+    description: 'Local'
+
+paths:
+  /v1/users:
+    post:
+    summary: New user account(s)
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/users'
+    responses:
+      '200':
+        description: Successfully created new user account(s)
+      '400':
+        description: Bad Request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/details'
+      '500':
+        description: Internal Server Error
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/details'
+    get:
+      description: Returns all the user from the system.
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/users'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/details'
+
+components:
+  schemas:
+    users:
+      type: array
+      minItems: 1
+      maxItems: 10
+      uniqueItems: true
+      items:
+        $ref: '#/components/schemas/user'
+
+    user:
+      type: object
+      required:
+        - role_id
+        - first_name
+        - last_name
+        - password
+      properties:
+        id:
+          type: integer
+          format: int32
+        role_id:
+          minLength: 1
+          type: integer
+          format: int32
+        first_name:
+          type: string
+          minLength: 1
+        last_name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 5
+          nullable: true
+        password:
+          type: string
+          minLength: 8
+          maxLength: 20
+        last_login:
+          type: string
+          nullable: true
+        date_created:
+          type: string
+        date_modified:
+          type: string
+          nullable: true
+    
+    details:
+      type: object
+      properties:
+        message:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
