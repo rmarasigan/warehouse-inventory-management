@@ -45,11 +45,10 @@ jobs:
           cache: false
           go-version: ${{ env.GO_VERSION }}
 
-      # Check go version and run vet on the code
-      - name: go-version-vet
+      # Check go version
+      - name: go-version
         run: |
           go version
-          go vet .
       
       # Install the specified version of golangci-lint.
       # golangci/golangci-lint-action: https://github.com/golangci/golangci-lint-action
