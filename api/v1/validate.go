@@ -7,6 +7,11 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
 )
 
+const (
+	Users   string = "users"
+	NewUser string = "users/new"
+)
+
 func IsValidMethod(method string) bool {
 	switch method {
 	case http.MethodGet, http.MethodPost:
@@ -19,8 +24,8 @@ func IsValidMethod(method string) bool {
 
 func IsValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
-		"users":     {http.MethodGet},
-		"users/new": {http.MethodPost},
+		Users:   {http.MethodGet},
+		NewUser: {http.MethodPost},
 	}
 
 	methods, exist := valid[segment]
@@ -33,7 +38,7 @@ func IsValidPathMethod(method, segment string) bool {
 		return value == method
 	}
 
-	log.Warn("provided path segment and method is invalid",
+	log.Warn("provided path segment or method is invalid",
 		slog.String("path", segment),
 		slog.String("method", method))
 

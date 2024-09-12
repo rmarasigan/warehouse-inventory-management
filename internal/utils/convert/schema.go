@@ -7,5 +7,9 @@ func Schema[T any, U any](source []T, fn func(T) U) []U {
 		destination = append(destination, fn(item))
 	}
 
+	if len(destination) == 0 {
+		destination = make([]U, 0)
+	}
+
 	return destination
 }
