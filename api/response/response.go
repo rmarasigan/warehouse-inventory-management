@@ -10,7 +10,9 @@ import (
 )
 
 type Response struct {
-	Message string `json:"message"`
+	Message string      `json:"message,omitempty"`
+	Error   string      `json:"error,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 func response(w http.ResponseWriter, status int, data interface{}) {

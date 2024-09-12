@@ -9,6 +9,7 @@ import (
 )
 
 func Handler(w http.ResponseWriter, r *http.Request, segment string) {
+	defer log.Panic()
 	var method = r.Method
 
 	switch {
@@ -19,12 +20,18 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 		return
 
 	case !IsValidPathMethod(method, segment):
-		log.Warn("invalid path and method", slog.String("path", segment), slog.String("method", method))
-		response.MethodNotAllowed(w, method)
-
+		response.BadRequest(w, response.Response{Error: "provided path or method is invalid"})
 		return
 
 	default:
+		switch segment {
+		case Users:
+			getUsers(w)
+
+		case NewUser:
+			createUser(w, r)
+		}
+
 		return
 	}
 }
