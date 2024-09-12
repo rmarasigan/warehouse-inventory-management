@@ -32,18 +32,17 @@ jobs:
     runs-on: ubuntu-latest
     # A sequence of tasks.
     steps:
-      # Checks out your repository.
-      # actions/checkout: https://github.com/actions/checkout
-      - name: action-checkout
-        uses: actions/checkout@v4
-      
       # Install the specified version of Go.
       # actions/setup-go: https://github.com/actions/setup-go
       - name: go-setup
         uses: actions/setup-go@v5
         with:
-          cache: false
           go-version: ${{ env.GO_VERSION }}
+
+      # Checks out your repository.
+      # actions/checkout: https://github.com/actions/checkout
+      - name: action-checkout
+        uses: actions/checkout@v4
 
       # Check go version
       - name: go-version
@@ -56,4 +55,3 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          install-mode: goinstall
