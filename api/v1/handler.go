@@ -30,6 +30,12 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 		case NewUser:
 			createUser(w, r)
+
+		case UpdateUser:
+			updateUser(w, r)
+
+		case DeleteUser:
+			deleteUser(w, r)
 		}
 
 		return

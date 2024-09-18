@@ -2,9 +2,11 @@ package v1
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -48,7 +50,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err.Error(), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 	}
 	defer r.Body.Close()
@@ -56,7 +58,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	ok, errors := validator.ValidateUser(body)
 	if !ok {
 		if len(errors) > 0 {
-			log.Error(strings.Join(errors, ", "), slog.String("request", string(body)))
+			log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
 			response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
 		}
 
@@ -65,7 +67,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	data, err := apischema.NewUser(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)))
+		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 	}
 
@@ -74,7 +76,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 			RoleID:      user.RoleID,
 			FirstName:   user.FirstName,
 			LastName:    user.LastName,
-			Email:       sql.NullString{String: user.Email},
+			Email:       sql.NullString{String: user.Email, Valid: true}, // Valid is 'true' if String is not NULL
 			Password:    user.Password,
 			DateCreated: user.SetDateCreated(),
 		}
@@ -84,7 +86,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		existing, err := mysql.UserExists(user)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users))
+			log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users), slog.Any("path", r.URL.Path))
 			response.InternalServer(w, response.Response{Error: "failed to validate if user exists", Details: user})
 
 			break
@@ -102,4 +104,84 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Success(w, nil)
+}
+
+// updateUser handles the HTTP request to update/modify user information.
+// It unmarshals the request body into a user object and updates the corresponding
+// fields. If an error occurs, it responds with an HTTP Internal Server Error status.
+func updateUser(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		log.Panic()
+		mysql.Close()
+	}()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+	}
+	defer r.Body.Close()
+
+	users, err := apischema.NewUser(body)
+	if err != nil {
+		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+	}
+
+	mysql.Connect()
+	for _, user := range users {
+		userID := fmt.Sprint(user.ID)
+
+		dbusers, err := mysql.RetrieveUsers(userID)
+		if err != nil {
+			log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
+			response.InternalServer(w, response.Response{Error: "failed to retrieve user account"})
+
+			break
+		}
+
+		for _, dbuser := range *dbusers {
+			dbuser.UpdateValues(user)
+
+			err := mysql.UpdateUser(dbuser)
+			if err != nil {
+				log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
+				response.InternalServer(w, response.Response{Error: "failed to update user account"})
+
+				break
+			}
+		}
+	}
+
+	response.Success(w, nil)
+}
+
+// deleteUser handles the HTTP request to delete a user. If an error occurs,
+// it writes either HTTP Internal Server Error or Bad Request status.
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		log.Panic()
+		mysql.Close()
+	}()
+
+	userID := r.URL.Query().Get("id")
+	if strings.TrimSpace(userID) == "" {
+		log.Error("user 'id' is required", slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: "missing user 'id' query parameter"})
+	}
+
+	id, err := strconv.Atoi(userID)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: "invalid user 'id' value"})
+	}
+
+	mysql.Connect()
+	affected, err := mysql.DeleteUser(id)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to delete user account"})
+	}
+
+	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
 }

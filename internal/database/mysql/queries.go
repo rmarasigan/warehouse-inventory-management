@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -28,6 +29,26 @@ import (
 //	result, err := NamedExec(query, user)
 func NamedExec(query string, args interface{}) (sql.Result, error) {
 	return database.NamedExec(query, args)
+}
+
+// Exec executes a query using the provided arguments.
+//
+// Parameters:
+//   - query: The MySQL query to execute.
+//   - args: The arguments for the query.
+//
+// Usage:
+//
+//	var query = `DELETE FROM table_name WHERE id  = ?`
+//
+//	result, err := Exec(query, 1)
+//	if err != nil {
+//	  panic(err)
+//	}
+//
+//	affected, err := result.RowsAffected()
+func Exec(query string, args ...interface{}) (sql.Result, error) {
+	return database.ExecContext(context.Background(), query, args...)
 }
 
 // Get executes a query and scans the result into the destination.

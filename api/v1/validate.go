@@ -8,13 +8,15 @@ import (
 )
 
 const (
-	Users   string = "users"
-	NewUser string = "users/new"
+	Users      string = "users"
+	NewUser    string = "users/new"
+	UpdateUser string = "users/update"
+	DeleteUser string = "users/delete"
 )
 
 func IsValidMethod(method string) bool {
 	switch method {
-	case http.MethodGet, http.MethodPost:
+	case http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete:
 		return true
 
 	default:
@@ -24,8 +26,10 @@ func IsValidMethod(method string) bool {
 
 func IsValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
-		Users:   {http.MethodGet},
-		NewUser: {http.MethodPost},
+		Users:      {http.MethodGet},
+		NewUser:    {http.MethodPost},
+		UpdateUser: {http.MethodPut},
+		DeleteUser: {http.MethodDelete},
 	}
 
 	methods, exist := valid[segment]
