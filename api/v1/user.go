@@ -22,12 +22,8 @@ import (
 // the list of users to the HTTP response with an HTTP OK status. If an error
 // occurs, it writes an HTTP Internal Server Error status.
 func getUsers(w http.ResponseWriter) {
-	defer func() {
-		log.Panic()
-		mysql.Close()
-	}()
+	defer log.Panic()
 
-	mysql.Connect()
 	users, err := mysql.UserList()
 	if err != nil {
 		log.Error(err.Error())
@@ -43,10 +39,7 @@ func getUsers(w http.ResponseWriter) {
 // body is invalid or the user already exists, it writes an appropriate
 // HTTP status response.
 func createUser(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		log.Panic()
-		mysql.Close()
-	}()
+	defer log.Panic()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -82,7 +75,6 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	mysql.Connect()
 	for _, user := range users {
 		existing, err := mysql.UserExists(user)
 		if err != nil {
@@ -110,10 +102,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 // It unmarshals the request body into a user object and updates the corresponding
 // fields. If an error occurs, it responds with an HTTP Internal Server Error status.
 func updateUser(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		log.Panic()
-		mysql.Close()
-	}()
+	defer log.Panic()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -128,7 +117,6 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 	}
 
-	mysql.Connect()
 	for _, user := range users {
 		userID := fmt.Sprint(user.ID)
 
@@ -159,10 +147,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 // deleteUser handles the HTTP request to delete a user. If an error occurs,
 // it writes either HTTP Internal Server Error or Bad Request status.
 func deleteUser(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		log.Panic()
-		mysql.Close()
-	}()
+	defer log.Panic()
 
 	userID := r.URL.Query().Get("id")
 	if strings.TrimSpace(userID) == "" {
@@ -176,7 +161,6 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, response.Response{Error: "invalid user 'id' value"})
 	}
 
-	mysql.Connect()
 	affected, err := mysql.DeleteUser(id)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))

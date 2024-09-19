@@ -1,41 +1,20 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/rmarasigan/warehouse-inventory-management/internal/app/config"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/trail"
 )
 
 var (
-	cfg      config
 	database *sqlx.DB
 	mysql    string = "mysql"
 )
-
-type config struct {
-	User         string
-	Password     string
-	DatabaseName string
-}
-
-// SetUser sets the database configuration username.
-func SetUser(username string) {
-	cfg.User = username
-}
-
-// SetPassword sets the database configuration password.
-func SetPassword(password string) {
-	cfg.Password = password
-}
-
-// SetDatabaseName sets the database configuration database name.
-func SetDatabaseName(dbname string) {
-	cfg.DatabaseName = dbname
-}
 
 // Connect opens a connection to MySQL using the specified DSN (data source name)
 // with a default configuration for MaxOpenConns, MaxIdleConns and MaxLifetime.
@@ -44,20 +23,23 @@ func Connect() {
 	if database == nil {
 		trail.Info("Establishing MySQL connection...")
 
-		if strings.TrimSpace(cfg.User) == "" {
-			cfg.User = "root"
+		dbname, ok := config.GetCache(config.DBNameKey).(string)
+		if !ok {
+			panic(errors.New("expected string for database name but got a different type"))
 		}
 
-		if strings.TrimSpace(cfg.Password) == "" {
-			panic("mysql password is not configured")
+		dbuser, ok := config.GetCache(config.DBUserKey).(string)
+		if !ok {
+			panic(errors.New("expected string for database user but got a different type"))
 		}
 
-		if strings.TrimSpace(cfg.DatabaseName) == "" {
-			panic("mysql database name is not configured")
+		dbpassword, ok := config.GetCache(config.DBPasswordKey).(string)
+		if !ok {
+			panic(errors.New("expected string for database password but got a different type"))
 		}
 
 		// Data Source Name
-		var dsn = fmt.Sprintf("%s:%s@/%s", cfg.User, cfg.Password, cfg.DatabaseName)
+		var dsn = fmt.Sprintf("%s:%s@/%s", dbuser, dbpassword, dbname)
 
 		// Connects to the database and attempts a ping.
 		db, err := sqlx.Connect(mysql, dsn)
