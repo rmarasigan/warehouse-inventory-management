@@ -1,0 +1,9 @@
+application:
+  name: Warehouse Inventory Management
+  host: 0.0.0.0
+  port: 8080
+
+mysql:
+  username: your-db-username
+  password: your-db-password
+  database_name: your-db-name
