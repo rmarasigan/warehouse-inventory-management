@@ -9,6 +9,7 @@ import (
 
 const (
 	users string = "users"
+	roles string = "roles"
 )
 
 func IsValidMethod(method string) bool {
@@ -24,6 +25,7 @@ func IsValidMethod(method string) bool {
 func IsValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
 		users: {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		roles: {http.MethodGet},
 	}
 
 	methods, exist := valid[segment]

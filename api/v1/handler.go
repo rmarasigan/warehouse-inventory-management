@@ -27,6 +27,8 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 		switch segment {
 		case users:
 			userHandler(w, r)
+
+		case roles:
 		}
 
 		return
