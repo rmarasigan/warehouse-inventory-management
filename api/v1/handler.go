@@ -25,17 +25,8 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 	default:
 		switch segment {
-		case Users:
-			getUsers(w)
-
-		case NewUser:
-			createUser(w, r)
-
-		case UpdateUser:
-			updateUser(w, r)
-
-		case DeleteUser:
-			deleteUser(w, r)
+		case users:
+			userHandler(w, r)
 		}
 
 		return

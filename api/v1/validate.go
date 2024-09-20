@@ -8,10 +8,7 @@ import (
 )
 
 const (
-	Users      string = "users"
-	NewUser    string = "users/new"
-	UpdateUser string = "users/update"
-	DeleteUser string = "users/delete"
+	users string = "users"
 )
 
 func IsValidMethod(method string) bool {
@@ -26,10 +23,7 @@ func IsValidMethod(method string) bool {
 
 func IsValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
-		Users:      {http.MethodGet},
-		NewUser:    {http.MethodPost},
-		UpdateUser: {http.MethodPut},
-		DeleteUser: {http.MethodDelete},
+		users: {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 	}
 
 	methods, exist := valid[segment]
@@ -39,7 +33,9 @@ func IsValidPathMethod(method, segment string) bool {
 	}
 
 	for _, value := range methods {
-		return value == method
+		if value == method {
+			return true
+		}
 	}
 
 	log.Warn("provided path segment or method is invalid",

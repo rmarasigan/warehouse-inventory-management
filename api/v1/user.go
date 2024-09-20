@@ -18,6 +18,22 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
 )
 
+func userHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getUsers(w)
+
+	case http.MethodPost:
+		createUser(w, r)
+
+	case http.MethodPut:
+		updateUser(w, r)
+
+	case http.MethodDelete:
+		deleteUser(w, r)
+	}
+}
+
 // getUsers handles the HTTP request to retrieve a list of users. It writes
 // the list of users to the HTTP response with an HTTP OK status. If an error
 // occurs, it writes an HTTP Internal Server Error status.
