@@ -14,9 +14,13 @@ const (
 	DefaultPort            string = "8080"
 	DefaultIP              string = "0.0.0.0"
 	DefaultApplicationName string = "Warehouse Inventory Management"
+	DefaultDatabaseHost    string = "127.0.0.1"
+	DefaultDatabasePort    string = "3306"
 	DefaultDatabaseName    string = "wim_db"
 	DefaultDatabaseUser    string = "root"
 
+	DBHostKey     string = "db_host"
+	DBPortKey     string = "db_port"
 	DBNameKey     string = "db_name"
 	DBUserKey     string = "db_user"
 	DBPasswordKey string = "db_password"
@@ -36,6 +40,8 @@ type Application struct {
 
 // MySQL holds the MySQL database-specific configuration details.
 type MySQL struct {
+	Host         string `yaml:"host,omitempty"`
+	Port         string `yaml:"port,omitempty"`
 	DatabaseName string `yaml:"database_name,omitempty"`
 	Username     string `yaml:"username,omitempty"`
 	Password     string `yaml:"password,omitempty"`
@@ -67,6 +73,8 @@ func Load(file string) (*config, error) {
 	NewCache()
 
 	// Cache the database config values
+	SetCache(DBHostKey, cfg.DatabaseHost())
+	SetCache(DBPortKey, cfg.DatabasePort())
 	SetCache(DBNameKey, cfg.DatabaseName())
 	SetCache(DBUserKey, cfg.DatabaseUser())
 	SetCache(DBPasswordKey, cfg.DatabasePassword())
@@ -84,9 +92,31 @@ func (cfg config) AppName() string {
 	return cfg.Application.Name
 }
 
+// DatabaseHost returns the MySQL database host from the configuration.
+// It uses default value (127.0.0.1) if the database host is not provided
+// in the configuration.
+func (cfg config) DatabaseHost() string {
+	if strings.TrimSpace(cfg.MySQL.Host) == "" {
+		cfg.MySQL.Host = DefaultDatabaseHost
+	}
+
+	return cfg.MySQL.Host
+}
+
+// DatabasePort returns the MySQL database port from the configuration.
+// It uses default value (3306) if the database port is not provided in
+// the configuration.
+func (cfg config) DatabasePort() string {
+	if strings.TrimSpace(cfg.MySQL.Port) == "" {
+		cfg.MySQL.Port = DefaultDatabasePort
+	}
+
+	return cfg.MySQL.Port
+}
+
 // DatabaseName returns the MySQL database name from the configuration.
-// It uses default value if the database name is not provided in the
-// configuration.
+// It uses default value (wim_db) if the database name is not provided
+// in the configuration.
 func (cfg config) DatabaseName() string {
 	if strings.TrimSpace(cfg.MySQL.DatabaseName) == "" {
 		cfg.MySQL.DatabaseName = DefaultDatabaseName
@@ -96,7 +126,7 @@ func (cfg config) DatabaseName() string {
 }
 
 // DatabaseUser returns the MySQL database username. It uses default
-// value if the username is not provided in the configuration.
+// value (root) if the username is not provided in the configuration.
 func (cfg config) DatabaseUser() string {
 	if strings.TrimSpace(cfg.MySQL.Username) == "" {
 		cfg.MySQL.Username = DefaultDatabaseUser
