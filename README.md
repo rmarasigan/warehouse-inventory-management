@@ -47,6 +47,10 @@ This will create a set of JSON schemas in `./api/schema/validator/spec` director
 ### Users
 Below are example `cURL` commands for interacting with the `/api/v1/users/` API.
 
+**Local Endpoint**: `http://0.0.0.0:8080/api/v1/users`
+
+#### Operations
+
 **`GET`: Fetch List of User Information**
 ```bash
 curl -X GET "http://0.0.0.0:8080/api/v1/users"
@@ -54,17 +58,34 @@ curl -X GET "http://0.0.0.0:8080/api/v1/users"
 
 **`POST`: Create a New User**
 ```bash
-curl -X POST "http://0.0.0.0:8080/api/v1/users/new" -H "Content-Type: application/json" -d '[{"role_id": 1, "first_name": "John", "last_name": "Doe", "email": "j.doe@example.com", "password": "john-doe-password"}, {"role_id": 1, "first_name": "Alice", "last_name": "Park", "password": "alice-password"}]'
+curl -X POST "http://0.0.0.0:8080/api/v1/users" -H "Content-Type: application/json" -d '[{"role_id": 1, "first_name": "John", "last_name": "Doe", "email": "j.doe@example.com", "password": "john-doe-password"}, {"role_id": 1, "first_name": "Alice", "last_name": "Park", "password": "alice-password"}]'
 ```
 
 **`DELETE`: Remove a User**
 ```bash
-curl -X DELETE "http://0.0.0.0:8080/api/v1/users/delete?id=1"
+curl -X DELETE "http://0.0.0.0:8080/api/v1/users?id=1"
 ```
 
 **`PUT`: Update User Information**
 ```bash
-curl -X PUT "http://0.0.0.0:8080/api/v1/users/update" -H "Content-Type: application/json" -d '[{"id": 16, "email": "j.doe@example.com", "password": "your-new-password"}]'
+curl -X PUT "http://0.0.0.0:8080/api/v1/users" -H "Content-Type: application/json" -d '[{"id": 16, "email": "j.doe@example.com", "password": "your-new-password"}]'
+```
+
+### Roles
+Below are example `cURL` commands for interacting with the `/api/v1/roles/` API.
+
+**Local Endpoint**: `http://0.0.0.0:8080/api/v1/roles`
+
+#### Operations
+
+**`GET`: Fetch List of Role Information**
+```bash
+curl -X GET "http://0.0.0.0:8080/api/v1/roles"
+```
+
+**`POST`: Create a New Role**
+```bash
+curl -X POST "http://0.0.0.0:8080/api/v1/roles" -H "Content-Type: application/json" -d '[{"name": "Administrator"}]'
 ```
 
 ## Reference
