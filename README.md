@@ -61,14 +61,14 @@ curl -X GET "http://0.0.0.0:8080/api/v1/users"
 curl -X POST "http://0.0.0.0:8080/api/v1/users" -H "Content-Type: application/json" -d '[{"role_id": 1, "first_name": "John", "last_name": "Doe", "email": "j.doe@example.com", "password": "john-doe-password"}, {"role_id": 1, "first_name": "Alice", "last_name": "Park", "password": "alice-password"}]'
 ```
 
-**`DELETE`: Remove a User**
-```bash
-curl -X DELETE "http://0.0.0.0:8080/api/v1/users?id=1"
-```
-
 **`PUT`: Update User Information**
 ```bash
 curl -X PUT "http://0.0.0.0:8080/api/v1/users" -H "Content-Type: application/json" -d '[{"id": 16, "email": "j.doe@example.com", "password": "your-new-password"}]'
+```
+
+**`DELETE`: Remove a User**
+```bash
+curl -X DELETE "http://0.0.0.0:8080/api/v1/users?id=1"
 ```
 
 ### Roles
@@ -86,6 +86,16 @@ curl -X GET "http://0.0.0.0:8080/api/v1/roles"
 **`POST`: Create a New Role**
 ```bash
 curl -X POST "http://0.0.0.0:8080/api/v1/roles" -H "Content-Type: application/json" -d '[{"name": "Administrator"}]'
+```
+
+**`PUT`: Update Role Information**
+```bash
+curl -X PUT "http://0.0.0.0:8080/api/v1/roles" -H "Content-Type: application/json" -d '[{"id": 1, "name": "admin"}]'
+```
+
+**`DELETE`: Remove a Role**
+```bash
+curl -X DELETE "http://0.0.0.0:8080/api/v1/roles?id=1"
 ```
 
 ## Reference

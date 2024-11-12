@@ -42,15 +42,61 @@ func NewRole(role schema.Role) error {
 	return err
 }
 
+// UpdateRole updates/modifies the existing role information in the 'role'
+// table.
+//
+// Parameter:
+//   - role: The role information that will be modified.
+func UpdateRole(role schema.Role) error {
+	query := `UPDATE role
+						SET name = :name
+						WHERE id = :id;`
+
+	_, err := NamedExec(query, role)
+
+	return err
+}
+
+// DeleteRole deletes existing role in the 'role' table.
+//
+// Parameter:
+//   - id: The unique role id in the 'role' table.
+func DeleteRole(id int) (int64, error) {
+	query := `DELETE FROM role WHERE id = ?`
+
+	result, err := Exec(query, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
+// RoleIDExists checks if a specific role id exists in the 'role' table.
+//
+// Parameter:
+//   - id: The unique role id in the 'role' table.
+func RoleIDExists(id int) (bool, error) {
+	var roles []schema.Role
+	query := `SELECT * FROM role WHERE id = ?;`
+
+	err := Select(&roles, query, id)
+	if err != nil {
+		return false, err
+	}
+
+	return (len(roles) > 0), nil
+}
+
 // RoleNameExists checks if a specific role exists in the 'role' table.
 //
 // Parameter:
-//   - role: The role information that will be checked.
-func RoleNameExists(role schema.Role) (bool, error) {
+//   - name: The role name that will be checked.
+func RoleNameExists(name string) (bool, error) {
 	var list []schema.Role
 	query := `SELECT * FROM role WHERE name = LOWER(?);`
 
-	err := Select(&list, query, strings.ToLower(role.Name))
+	err := Select(&list, query, strings.ToLower(name))
 	if err != nil {
 		return false, err
 	}

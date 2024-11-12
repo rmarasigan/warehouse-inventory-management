@@ -1,9 +1,11 @@
 package v1
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -22,6 +24,12 @@ func roleHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		createRole(w, r)
+
+	case http.MethodPut:
+		updateRole(w, r)
+
+	case http.MethodDelete:
+		deleteRole(w, r)
 	}
 }
 
@@ -79,7 +87,7 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, role := range roles {
-		existing, err := mysql.RoleNameExists(role)
+		existing, err := mysql.RoleNameExists(role.Name)
 		if err != nil {
 			log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles), slog.Any("path", r.URL.Path))
 			response.InternalServer(w, response.Response{Error: "failed to validate if role name exists", Details: role})
@@ -99,4 +107,81 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Created(w, nil)
+}
+
+// updateRole handles the HTTP request to update/modify role information. It
+// unmarshals the request body into a role object and updates the corresponding
+// fields. If an error occurs, it responds with an HTTP Internal Server Error status.
+func updateRole(w http.ResponseWriter, r *http.Request) {
+	defer log.Panic()
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+	}
+	defer r.Body.Close()
+
+	data, err := apischema.NewRole(body)
+	if err != nil {
+		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+	}
+
+	var roles = convert.Schema(data, func(role apischema.Role) schema.Role {
+		return schema.Role{
+			ID:   role.ID,
+			Name: role.Name,
+		}
+	})
+
+	for _, role := range roles {
+		roleID := role.ID
+
+		existing, err := mysql.RoleIDExists(roleID)
+		if err != nil {
+			log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles), slog.Any("path", r.URL.Path))
+			response.InternalServer(w, response.Response{Error: "failed to validate if role id exists", Details: role})
+
+			break
+		}
+
+		if existing {
+			err = mysql.UpdateRole(role)
+			if err != nil {
+				log.Error(err.Error(), slog.Any("id", roleID), slog.Any("path", r.URL.Path))
+				response.InternalServer(w, response.Response{Error: "failed to update role"})
+
+				break
+			}
+		}
+	}
+
+	response.Success(w, nil)
+}
+
+// deleteRole handles the HTTP request to delete a role. If an error occurs,
+// it writes either HTTP Internal Server Error or Bad Request status.
+func deleteRole(w http.ResponseWriter, r *http.Request) {
+	defer log.Panic()
+
+	roleID := r.URL.Query().Get("id")
+	if strings.TrimSpace(roleID) == "" {
+		log.Error("role 'id' is required", slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: "missing role 'id' query parameter"})
+	}
+
+	id, err := strconv.Atoi(roleID)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: "invalid role 'id' value"})
+	}
+
+	affected, err := mysql.DeleteRole(id)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to delete role"})
+	}
+
+	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
 }
