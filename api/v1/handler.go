@@ -29,6 +29,7 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 			userHandler(w, r)
 
 		case roles:
+			roleHandler(w, r)
 		}
 
 		return

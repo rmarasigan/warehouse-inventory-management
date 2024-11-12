@@ -25,7 +25,7 @@ func IsValidMethod(method string) bool {
 func IsValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
 		users: {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		roles: {http.MethodGet},
+		roles: {http.MethodGet, http.MethodPost},
 	}
 
 	methods, exist := valid[segment]

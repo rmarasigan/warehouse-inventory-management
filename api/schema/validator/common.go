@@ -50,8 +50,17 @@ func isValid(input []byte, source string) (bool, []string) {
 // ValidateUser validates the input JSON against the users schema.
 //
 // Returns:
-//   - bool:			'true' if the input is valid, 'false' otherwise.
-//   - []string:  A list of error message if the validation fails.
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
 func ValidateUser(input []byte) (bool, []string) {
 	return isValid(input, basePath+"users.json")
+}
+
+// ValidateRole validates the input JSON against the roles schema.
+//
+// Returns:
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
+func ValidateRole(input []byte) (bool, []string) {
+	return isValid(input, basePath+"roles.json")
 }
