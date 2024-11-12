@@ -111,7 +111,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.Success(w, nil)
+	response.Created(w, nil)
 }
 
 // updateUser handles the HTTP request to update/modify user information.
