@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -55,29 +54,40 @@ func getUsers(w http.ResponseWriter) {
 // body is invalid or the user already exists, it writes an appropriate
 // HTTP status response.
 func createUser(w http.ResponseWriter, r *http.Request) {
-	defer log.Panic()
+	defer func() {
+		log.Panic()
+		r.Body.Close()
+	}()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+
+		return
 	}
-	defer r.Body.Close()
+
+	if len(body) == 0 {
+		log.Error("missing request body", slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+
+		return
+	}
 
 	ok, errors := validator.ValidateUser(body)
 	if !ok {
-		if len(errors) > 0 {
-			log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-			response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
-		}
+		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
 
-		response.InternalServer(w, nil)
+		return
 	}
 
 	data, err := apischema.NewUser(body)
 	if err != nil {
 		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+
+		return
 	}
 
 	var users = convert.Schema(data, func(user apischema.User) schema.User {
@@ -118,19 +128,25 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 // It unmarshals the request body into a user object and updates the corresponding
 // fields. If an error occurs, it responds with an HTTP Internal Server Error status.
 func updateUser(w http.ResponseWriter, r *http.Request) {
-	defer log.Panic()
+	defer func() {
+		log.Panic()
+		r.Body.Close()
+	}()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+
+		return
 	}
-	defer r.Body.Close()
 
 	users, err := apischema.NewUser(body)
 	if err != nil {
 		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+
+		return
 	}
 
 	for _, user := range users {
@@ -165,22 +181,18 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 func deleteUser(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	userID := r.URL.Query().Get("id")
-	if strings.TrimSpace(userID) == "" {
-		log.Error("user 'id' is required", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "missing user 'id' query parameter"})
-	}
-
-	id, err := strconv.Atoi(userID)
+	id, err := parameterID(r)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "invalid user 'id' value"})
+		response.BadRequest(w, response.Response{Error: err.Error()})
+		return
 	}
 
 	affected, err := mysql.DeleteUser(id)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to delete user account"})
+
+		return
 	}
 
 	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
