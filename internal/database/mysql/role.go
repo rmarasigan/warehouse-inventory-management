@@ -30,6 +30,29 @@ func RoleList() ([]apischema.Role, error) {
 	return roles, nil
 }
 
+// GetRole retrieves a specific role.
+//
+// Parameter:
+//   - id: The unique role id in the 'role' table.
+func GetRole(id int) ([]apischema.Role, error) {
+	var list []schema.Role
+	query := `SELECT * FROM role WHERE id = ?;`
+
+	err := Select(&list, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var roles = convert.Schema(list, func(role schema.Role) apischema.Role {
+		return apischema.Role{
+			ID:   role.ID,
+			Name: role.Name,
+		}
+	})
+
+	return roles, nil
+}
+
 // NewRole inserts a new role information into the 'role' table.
 //
 // Parameter:
@@ -77,10 +100,7 @@ func DeleteRole(id int) (int64, error) {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func RoleIDExists(id int) (bool, error) {
-	var roles []schema.Role
-	query := `SELECT * FROM role WHERE id = ?;`
-
-	err := Select(&roles, query, id)
+	roles, err := GetRole(id)
 	if err != nil {
 		return false, err
 	}

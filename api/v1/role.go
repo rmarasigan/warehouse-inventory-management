@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -19,7 +20,7 @@ import (
 func roleHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getRoles(w)
+		getRoles(w, r)
 
 	case http.MethodPost:
 		createRole(w, r)
@@ -32,16 +33,38 @@ func roleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// getRoles handles the HTTP request to retrieve a list of roles. It writes
-// the list of roles to the HTTP response with an HTTP OK status. If an error
-// occurs, it writes an HTTP Internal Server Error status.
-func getRoles(w http.ResponseWriter) {
+// getRoles handles the HTTP request to retrieve a list of role(s) or a specific role.
+// It writes the list of role(s) to the HTTP response with an HTTP OK status. If an
+// error occurs, it writes an HTTP Internal Server Error status.
+func getRoles(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	roles, err := mysql.RoleList()
-	if err != nil {
-		log.Error(err.Error())
-		response.InternalServer(w, nil)
+	var roles []apischema.Role
+	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
+
+	if len(idParam) > 0 {
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			log.Error(err.Error())
+			response.InternalServer(w, nil)
+		}
+
+		result, err := mysql.GetRole(id)
+		if err != nil {
+			log.Error(err.Error())
+			response.InternalServer(w, nil)
+		}
+
+		roles = result
+
+	} else {
+		result, err := mysql.RoleList()
+		if err != nil {
+			log.Error(err.Error())
+			response.InternalServer(w, nil)
+		}
+
+		roles = result
 	}
 
 	response.Success(w, roles)

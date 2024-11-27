@@ -1,6 +1,6 @@
 # Warehouse Inventory Management
 
-A Warehouse Inventory Management system is designed to help you manage and track inventory within a warehouse.
+A simple Warehouse Inventory Management System that is designed to help you manage and track inventory within a warehouse.
 
 ### Running the Application
 
@@ -81,6 +81,7 @@ Below are example `cURL` commands for interacting with the `/api/v1/roles/` API.
 **`GET`: Fetch List of Role Information**
 ```bash
 curl -X GET "http://0.0.0.0:8080/api/v1/roles"
+curl -X GET "http://0.0.0.0:8080/api/v1/roles?id=1"
 ```
 
 **`POST`: Create a New Role**
