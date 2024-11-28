@@ -30,6 +30,9 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 		case roles:
 			roleHandler(w, r)
+
+		case storages:
+			storageHandler(w, r)
 		}
 
 		return
