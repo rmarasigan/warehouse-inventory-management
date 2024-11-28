@@ -2,6 +2,7 @@ package v1
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -25,4 +26,32 @@ func parameterID(r *http.Request) (int, error) {
 	}
 
 	return id, nil
+}
+
+func getList[T any](r *http.Request, get func(id int) ([]T, error), list func() ([]T, error)) ([]T, error) {
+	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
+
+	if len(idParam) > 0 {
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			return nil, err
+		}
+
+		// Fetch data for the given id
+		result, err := get(id)
+		if err != nil {
+			return nil, fmt.Errorf("get: %w", err)
+		}
+
+		return result, nil
+
+	}
+
+	// Fetch all the data
+	result, err := list()
+	if err != nil {
+		return nil, fmt.Errorf("list: %w", err)
+	}
+
+	return result, nil
 }

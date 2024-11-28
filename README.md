@@ -99,6 +99,34 @@ curl -X PUT "http://0.0.0.0:8080/api/v1/roles" -H "Content-Type: application/jso
 curl -X DELETE "http://0.0.0.0:8080/api/v1/roles?id=1"
 ```
 
+### Storage
+Below are example `cURL` commands for interacting with the `/api/v1/storages/` API.
+
+**Local Endpoint**: `http://0.0.0.0:8080/api/v1/storages`
+
+#### Operations
+
+**`GET`: Fetch List of Storage Information**
+```bash
+curl -X GET "http://0.0.0.0:8080/api/v1/storages"
+curl -X GET "http://0.0.0.0:8080/api/v1/storages?id=1"
+```
+
+**`POST`: Create a New Storage(s)**
+```bash
+curl -X POST "http://0.0.0.0:8080/api/v1/storages" -H "Content-Type: application/json" -d '[{"code": "WHS-001", "name": "Warehouse Storage Location 001"},{"code": "B-1-1-L-1", "name": "Section B, Aisle 1, Column 1, Left side, Level 1)"}]'
+```
+
+**`PUT`: Update Storage(s) Information**
+```bash
+curl -X PUT "http://0.0.0.0:8080/api/v1/storages" -H "Content-Type: application/json" -d '[{"id": 1, "name": "Warehouse Storage Location SE"}]'
+```
+
+**`DELETE`: Remove a Storage**
+```bash
+curl -X DELETE "http://0.0.0.0:8080/api/v1/storages?id=1"
+```
+
 ## Reference
 * [gojsonschema](https://github.com/xeipuuv/gojsonschema)
 * [OpenAPI Documentation](https://learn.openapis.org/)
