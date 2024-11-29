@@ -18,22 +18,16 @@ servers:
 paths:
   /users:
     get:
-      description: Returns all the user from the system.
+      description: Returns all the user from the system
       responses:
         '200':
-          description: A list of users.
+          description: A list of users
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/user'
+                $ref: '#/components/schemas/users'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New user account(s)
       requestBody:
@@ -45,40 +39,22 @@ paths:
         '200':
           description: Successfully created new user account(s)
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete user account
       parameters:
       - name: id
         in: query
         required: true
-        schema:
-          type: string
       responses:
         '200':
-          description: Successfully deleted the user account
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the user account
       requestBody:
@@ -88,88 +64,54 @@ paths:
               $ref: '#/components/schemas/users'
       responses:
         '200':
-          description: The user account is successfully updated
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
 
   /roles:
     get:
-      description: Returns all the roles from the system.
+      description: Returns either all/specific role(s) from the system
       parameters:
       - name: id
         in: query
-        schema:
-          type: string
       responses:
         '200':
-          description: A list of roles.
+          description: A list of roles
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/role'
+                $ref: '#/components/schemas/roles'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New role(s)
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/roles'
+              $ref: '#/components/schemas/roles'
       responses:
         '200':
           description: Successfully created new role(s)
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete user role
       parameters:
       - name: id
         in: query
         required: true
-        schema:
-          type: string
       responses:
         '200':
-          description: Successfully deleted the user role
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the role
       requestBody:
@@ -179,88 +121,54 @@ paths:
               $ref: '#/components/schemas/roles'
       responses:
         '200':
-          description: The role is successfully updated
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
 
   /storages:
     get:
-      description: Returns either all/specific storage(s) from the system.
+      description: Returns either all/specific storage(s) from the system
       parameters:
       - name: id
         in: query
-        schema:
-          type: string
       responses:
         '200':
-          description: Successfully created new storage(s)
-        '400':
-          description: Bad Request
+          description: Succesfully retrieved all/specific storage(s)
           content:
             application/json:
               schema:
-                $ref: '#components/schemas/details'
+                $ref: '#/components/schemas/storages'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New storage(s)
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/storages'
+              $ref: '#/components/schemas/storages'
       responses:
         '200':
           description: Successfully created new storage(s)
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete storage
       parameters:
       - name: id
         in: query
         required: true
-        schema:
-          type: string
       responses:
         '200':
-          description: Successfully deleted the storage
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the storage details
       requestBody:
@@ -270,21 +178,88 @@ paths:
               $ref: '#/components/schemas/storages'
       responses:
         '200':
-          description: The storage details is successfully updated
+          $ref: '#/components/responses/OK'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#components/schemas/details'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          description: Internal Server Error
+          $ref: '#/components/responses/InternalServerError'
+
+  /uoms:
+    get:
+      description: Returns either all/specific unit of measurement(s) from the system.
+      parameters:
+      - name: id
+        in: query
+      responses:
+        '200':
+          description: Succesfully retrieved all/specific unit of measurement(s)
           content:
             application/json:
               schema:
-                $ref: '#components/schemas/details'
+                $ref: '#/components/schemas/uoms'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: New unit of measurement(s)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/uoms'
+      responses:
+        '200':
+          description: Successfully created new unit of measurement(s)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a specific unit of measurement
+      parameters:
+      - name: id
+        in: query
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/OK'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: Update the unit of measurement details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/uoms'
+      responses:
+        '200':
+          $ref: '#/components/responses/OK'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
+  responses:
+    OK:
+      description: The request is successfully executed
+
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#componentns/schemas/details'
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/details'
+
   schemas:
     users:
       type: array
@@ -372,6 +347,28 @@ components:
         code:
           type: string
         description:
+          type: string
+
+    uoms:
+      type: array
+      minItems: 1
+      maxItems: 10
+      uniqueItems: true
+      items:
+        $ref: '#/components/schemas/uom'
+
+    uom:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        id:
+          type: integer
+          format: int32
+        code:
+          type: string
+        name:
           type: string
 
     details:

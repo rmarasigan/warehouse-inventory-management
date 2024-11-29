@@ -33,6 +33,9 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 		case storages:
 			storageHandler(w, r)
+
+		case uoms:
+			uomHandler(w, r)
 		}
 
 		return
