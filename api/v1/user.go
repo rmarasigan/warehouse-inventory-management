@@ -39,11 +39,24 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 func getUsers(w http.ResponseWriter) {
 	defer log.Panic()
 
-	users, err := mysql.UserList()
+	list, err := mysql.UserList()
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)
 	}
+
+	users := convert.Schema(list, func(user schema.User) apischema.User {
+		return apischema.User{
+			ID:           user.ID,
+			RoleID:       user.RoleID,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email.String,
+			LastLogin:    user.LastLogin.String,
+			DateCreated:  user.DateCreated,
+			DateModified: user.DateModified.String,
+		}
+	})
 
 	response.Success(w, users)
 }
@@ -90,7 +103,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var users = convert.Schema(data, func(user apischema.User) schema.User {
+	users := convert.Schema(data, func(user apischema.User) schema.User {
 		return schema.User{
 			RoleID:      user.RoleID,
 			FirstName:   user.FirstName,
@@ -107,7 +120,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 			log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users), slog.Any("path", r.URL.Path))
 			response.InternalServer(w, response.Response{Error: "failed to validate if user exists", Details: user})
 
-			break
+			return
 		}
 
 		if !existing {
@@ -116,7 +129,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 				log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users))
 				response.InternalServer(w, response.Response{Error: "failed create new user account", Details: user})
 
-				break
+				return
 			}
 		}
 	}
@@ -141,7 +154,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := apischema.NewUser(body)
+	data, err := apischema.NewUser(body)
 	if err != nil {
 		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
@@ -149,26 +162,35 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	users := convert.Schema(data, func(user apischema.User) schema.User {
+		return schema.User{
+			ID:        user.ID,
+			RoleID:    user.RoleID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     sql.NullString{String: user.Email, Valid: true},
+			Password:  user.Password,
+		}
+	})
+
 	for _, user := range users {
 		userID := fmt.Sprint(user.ID)
 
-		dbusers, err := mysql.RetrieveUsers(userID)
+		existing, err := mysql.UserIDExists(user.ID)
 		if err != nil {
 			log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to retrieve user account"})
+			response.InternalServer(w, response.Response{Error: "failed to validate if user id exists"})
 
-			break
+			return
 		}
 
-		for _, dbuser := range *dbusers {
-			dbuser.UpdateValues(user)
-
-			err := mysql.UpdateUser(dbuser)
+		if existing {
+			err = mysql.UpdateUser(user)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
 				response.InternalServer(w, response.Response{Error: "failed to update user account"})
 
-				break
+				return
 			}
 		}
 	}
