@@ -27,7 +27,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/users'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New user account(s)
       requestBody:
@@ -39,9 +39,9 @@ paths:
         '200':
           description: Successfully created new user account(s)
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete user account
       parameters:
@@ -50,11 +50,11 @@ paths:
         required: true
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the user account
       requestBody:
@@ -64,11 +64,11 @@ paths:
               $ref: '#/components/schemas/users'
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
 
   /roles:
     get:
@@ -84,21 +84,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/roles'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New role(s)
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/roles'
+              $ref: '#/components/schemas/roles'
       responses:
         '200':
           description: Successfully created new role(s)
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete user role
       parameters:
@@ -107,11 +107,11 @@ paths:
         required: true
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the role
       requestBody:
@@ -121,11 +121,11 @@ paths:
               $ref: '#/components/schemas/roles'
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
 
   /storages:
     get:
@@ -139,23 +139,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#components/schemas/storages'
+                $ref: '#/components/schemas/storages'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New storage(s)
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/storages'
+              $ref: '#/components/schemas/storages'
       responses:
         '200':
           description: Successfully created new storage(s)
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete storage
       parameters:
@@ -164,11 +164,11 @@ paths:
         required: true
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the storage details
       requestBody:
@@ -178,11 +178,11 @@ paths:
               $ref: '#/components/schemas/storages'
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
 
   /uoms:
     get:
@@ -196,23 +196,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#components/schemas/uoms'
+                $ref: '#/components/schemas/uoms'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     post:
       summary: New unit of measurement(s)
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/uoms'
+              $ref: '#/components/schemas/uoms'
       responses:
         '200':
           description: Successfully created new unit of measurement(s)
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete a specific unit of measurement
       parameters:
@@ -221,25 +221,25 @@ paths:
         required: true
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
     put:
       summary: Update the unit of measurement details
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#components/schemas/uoms'
+              $ref: '#/components/schemas/uoms'
       responses:
         '200':
-          $ref: '#components/responses/OK'
+          $ref: '#/components/responses/OK'
         '400':
-          $ref: '#components/responses/BadRequest'
+          $ref: '#/components/responses/BadRequest'
         '500':
-          $ref: '#components/responses/InternalServerError'
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   responses:
@@ -355,7 +355,7 @@ components:
       maxItems: 10
       uniqueItems: true
       items:
-        $ref: '#components/schemas/uom'
+        $ref: '#/components/schemas/uom'
 
     uom:
       type: object
