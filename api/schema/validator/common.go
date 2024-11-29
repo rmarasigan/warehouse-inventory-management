@@ -73,3 +73,12 @@ func ValidateRole(input []byte) (bool, []string) {
 func ValidateStorage(input []byte) (bool, []string) {
 	return isValid(input, basePath+"storages.json")
 }
+
+// ValidateUOM validates the input JSON against the uoms schema.
+//
+// Returns:
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
+func ValidateUOM(input []byte) (bool, []string) {
+	return isValid(input, basePath+"uoms.json")
+}

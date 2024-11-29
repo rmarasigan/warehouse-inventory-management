@@ -11,6 +11,7 @@ const (
 	users    string = "users"
 	roles    string = "roles"
 	storages string = "storages"
+	uoms     string = "uoms"
 )
 
 func IsValidMethod(method string) bool {
@@ -28,6 +29,7 @@ func IsValidPathMethod(method, segment string) bool {
 		users:    {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 		roles:    {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 		storages: {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		uoms:     {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 	}
 
 	methods, exist := valid[segment]
