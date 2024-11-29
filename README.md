@@ -127,6 +127,34 @@ curl -X PUT "http://0.0.0.0:8080/api/v1/storages" -H "Content-Type: application/
 curl -X DELETE "http://0.0.0.0:8080/api/v1/storages?id=1"
 ```
 
+### Unit of Measurement
+Below are example `cURL` commands for interacting with the `/api/v1/uoms/` API.
+
+**Local Endpoint**: `http://0.0.0.0:8080/api/v1/uoms`
+
+#### Operations
+
+**`GET`: Fetch List of UOM Information**
+```bash
+curl -X GET "http://0.0.0.0:8080/api/v1/uoms"
+curl -X GET "http://0.0.0.0:8080/api/v1/uoms?id=1"
+```
+
+**`POST`: Create a New UOM(s)**
+```bash
+curl -X POST "http://0.0.0.0:8080/api/v1/uoms" -H "Content-Type: application/json" -d '[{"code": "pcs", "name": "Pieces"},{"code": "case", "name": "Case"},{"code": "box", "name": "Box"}]'
+```
+
+**`PUT`: Update UOM(s) Information**
+```bash
+curl -X PUT "http://0.0.0.0:8080/api/v1/uoms" -H "Content-Type: application/json" -d '[{"id": 3, "name": "Container"}]'
+```
+
+**`DELETE`: Remove a UOM**
+```bash
+curl -X DELETE "http://0.0.0.0:8080/api/v1/uoms?id=1"
+```
+
 ## Reference
 * [gojsonschema](https://github.com/xeipuuv/gojsonschema)
 * [OpenAPI Documentation](https://learn.openapis.org/)
