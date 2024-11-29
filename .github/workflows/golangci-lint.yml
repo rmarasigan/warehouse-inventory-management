@@ -18,7 +18,7 @@ permissions:
 # Map of variables that are available to the steps of all jobs in the workflow.
 # Reference: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#env
 env:
-  GO_VERSION: 1.21
+  GO_VERSION: 1.22
   # Reference: https://github.com/golangci/golangci-lint
   GOLANGCI_LINT_VERSION: v1.60
 
