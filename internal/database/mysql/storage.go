@@ -5,17 +5,16 @@ import (
 )
 
 func ListStorage() ([]schema.Storage, error) {
-	query := "SELECT * FROM storage;"
-	return fetch[schema.Storage](query)
+	return fetch[schema.Storage]("SELECT * FROM storage;")
 }
 
 func GetStorage(id int) ([]schema.Storage, error) {
-	query := "SELECT * FROM storage WHERE id = ?;"
-	return fetch[schema.Storage](query, id)
+	return fetch[schema.Storage]("SELECT * FROM storage WHERE id = ?;", id)
 }
 
 func NewStorage(storage schema.Storage) error {
-	query := "INSERT INTO storage (id, code, name, description) VALUES (:id, :code, :name, :description);"
+	query := `INSERT INTO storage (code, name, description)
+						VALUES (:code, :name, :description);`
 
 	_, err := NamedExec(query, storage)
 
@@ -45,20 +44,13 @@ func UpdateStorage(storage schema.Storage) error {
 }
 
 func DeleteStorage(id int) (int64, error) {
-	query := "DELETE FROM storage WHERE id = ?;"
-	return delete(query, id)
+	return delete("DELETE FROM storage WHERE id = ?;", id)
 }
 
 func StorageIDExists(id int) (bool, error) {
-	storages, err := GetStorage(id)
-	if err != nil {
-		return false, err
-	}
-
-	return (len(storages) > 0), nil
+	return entityExists(GetStorage, id)
 }
 
 func StorageNameExists(name string) (bool, error) {
-	query := "SELECT * FROM storage WHERE name = LOWER(?);"
-	return exists[schema.Storage](query, name)
+	return exists[schema.Storage]("SELECT * FROM storage WHERE name = LOWER(?);", name)
 }

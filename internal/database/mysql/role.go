@@ -6,8 +6,7 @@ import (
 
 // RoleList retrieves a list of roles.
 func ListRole() ([]schema.Role, error) {
-	query := "SELECT * FROM role;"
-	return fetch[schema.Role](query)
+	return fetch[schema.Role]("SELECT * FROM role;")
 }
 
 // GetRole retrieves a specific role.
@@ -15,8 +14,7 @@ func ListRole() ([]schema.Role, error) {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func GetRole(id int) ([]schema.Role, error) {
-	query := "SELECT * FROM role WHERE id = ?;"
-	return fetch[schema.Role](query, id)
+	return fetch[schema.Role]("SELECT * FROM role WHERE id = ?;", id)
 }
 
 // NewRole inserts a new role information into the 'role' table.
@@ -24,10 +22,7 @@ func GetRole(id int) ([]schema.Role, error) {
 // Parameter:
 //   - role: The role information that will be inserted.
 func NewRole(role schema.Role) error {
-	query := "INSERT INTO role (id, name) VALUES (:id, :name);"
-
-	_, err := NamedExec(query, role)
-
+	_, err := NamedExec("INSERT INTO role (name) VALUES (:name);", role)
 	return err
 }
 
@@ -55,8 +50,7 @@ func UpdateRole(role schema.Role) error {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func DeleteRole(id int) (int64, error) {
-	query := "DELETE FROM role WHERE id = ?;"
-	return delete(query, id)
+	return delete("DELETE FROM role WHERE id = ?;", id)
 }
 
 // RoleIDExists checks if a specific role id exists in the 'role' table.
@@ -64,12 +58,7 @@ func DeleteRole(id int) (int64, error) {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func RoleIDExists(id int) (bool, error) {
-	roles, err := GetRole(id)
-	if err != nil {
-		return false, err
-	}
-
-	return (len(roles) > 0), nil
+	return entityExists(GetRole, id)
 }
 
 // RoleNameExists checks if a specific role exists in the 'role' table.
@@ -77,6 +66,5 @@ func RoleIDExists(id int) (bool, error) {
 // Parameter:
 //   - name: The role name that will be checked.
 func RoleNameExists(name string) (bool, error) {
-	query := "SELECT * FROM role WHERE name = LOWER(?);"
-	return exists[schema.Role](query, name)
+	return exists[schema.Role]("SELECT * FROM role WHERE name = LOWER(?);", name)
 }

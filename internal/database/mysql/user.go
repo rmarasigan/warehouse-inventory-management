@@ -6,8 +6,7 @@ import (
 
 // UserList retrieves a list of users.
 func UserList() ([]schema.User, error) {
-	query := "SELECT * FROM user;"
-	return fetch[schema.User](query)
+	return fetch[schema.User]("SELECT * FROM user;")
 }
 
 // NewUser inserts new user information into the 'user' table.
@@ -16,7 +15,7 @@ func UserList() ([]schema.User, error) {
 //   - user: The user information that will be inserted.
 func NewUser(user schema.User) error {
 	query := `INSERT INTO user (role_id, first_name, last_name, email, password, date_created)
-							 VALUES (:role_id, :first_name, :last_name, :email, :password, :date_created)`
+						VALUES (:role_id, :first_name, :last_name, :email, :password, :date_created);`
 
 	_, err := NamedExec(query, user)
 
@@ -51,7 +50,7 @@ func UpdateUser(user schema.User) error {
 								WHEN :password = '' THEN password
 								ELSE COALESCE(:password, password)
 							END
-						WHERE id = :id`
+						WHERE id = :id;`
 
 	_, err := NamedExec(query, user)
 
@@ -63,8 +62,7 @@ func UpdateUser(user schema.User) error {
 // Parameter:
 //   - id: The unique user id that will be deleted.
 func DeleteUser(id int) (int64, error) {
-	query := `DELETE FROM user WHERE id = ?`
-	return delete(query, id)
+	return delete("DELETE FROM user WHERE id = ?;", id)
 }
 
 // UserExists checks if a specific user exists in the 'user' table.
@@ -72,8 +70,7 @@ func DeleteUser(id int) (int64, error) {
 // Parameter:
 //   - user: The user information that will be checked.
 func UserExists(user schema.User) (bool, error) {
-	query := `SELECT * FROM user WHERE (first_name = ? AND last_name = ?`
-	return exists[schema.User](query, user.FirstName, user.LastName, user.Password)
+	return exists[schema.User]("SELECT * FROM user WHERE (first_name = ? AND last_name = ?;", user.FirstName, user.LastName, user.Password)
 }
 
 // UserIDExists checks if a specific user ID exists in the 'user' table.
@@ -81,6 +78,5 @@ func UserExists(user schema.User) (bool, error) {
 // Parameter:
 //   - id: The unique user id that will be checked.
 func UserIDExists(id int) (bool, error) {
-	query := `SELECT * FROM user WHERE id = ?;`
-	return exists[schema.User](query, id)
+	return exists[schema.User]("SELECT * FROM user WHERE id = ?;", id)
 }

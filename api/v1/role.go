@@ -100,7 +100,6 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 
 	roles := convert.Schema(data, func(role apischema.Role) schema.Role {
 		return schema.Role{
-			ID:   role.ID,
 			Name: role.Name,
 		}
 	})

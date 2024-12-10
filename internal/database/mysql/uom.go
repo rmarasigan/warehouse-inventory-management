@@ -5,17 +5,16 @@ import (
 )
 
 func ListUOM() ([]schema.UOM, error) {
-	query := "SELECT * FROM unit_of_measurement;"
-	return fetch[schema.UOM](query)
+	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement;")
 }
 
 func GetUOM(id int) ([]schema.UOM, error) {
-	query := "SELECT * FROM unit_of_measurement WHERE id = ?;"
-	return fetch[schema.UOM](query, id)
+	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?;", id)
 }
 
 func NewUOM(uom schema.UOM) error {
-	query := `INSERT INTO unit_of_measurement (id, code, name) VALUES (:id, :code, :name)`
+	query := `INSERT INTO unit_of_measurement (code, name)
+						VALUES (:code, :name)`
 
 	_, err := NamedExec(query, uom)
 
@@ -41,16 +40,13 @@ func UpdateUOM(uom schema.UOM) error {
 }
 
 func DeleteUOM(id int) (int64, error) {
-	query := `DELETE FROM unit_of_measurement WHERE id = ?;`
-	return delete(query, id)
+	return delete("DELETE FROM unit_of_measurement WHERE id = ?;", id)
 }
 
 func UOMIDExists(id int) (bool, error) {
-	query := `SELECT * FROM unit_of_measurement WHERE id = ?`
-	return exists[schema.UOM](query, id)
+	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?", id)
 }
 
 func UOMNameExists(name string) (bool, error) {
-	query := `SELECT * FROM unit_of_measurement WHERE name = LOWER(?);`
-	return exists[schema.UOM](query, name)
+	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE name = LOWER(?);", name)
 }
