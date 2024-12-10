@@ -1,37 +1,17 @@
 package mysql
 
 import (
-	"strings"
-
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-func UOMList() ([]schema.UOM, error) {
-	var (
-		list  []schema.UOM
-		query = "SELECT * FROM unit_of_measurement;"
-	)
-
-	err := Select(&list, query)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+func ListUOM() ([]schema.UOM, error) {
+	query := "SELECT * FROM unit_of_measurement;"
+	return fetch[schema.UOM](query)
 }
 
 func GetUOM(id int) ([]schema.UOM, error) {
-	var (
-		list  []schema.UOM
-		query = "SELECT * FROM unit_of_measurement WHERE id = ?;"
-	)
-
-	err := Select(&list, query, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+	query := "SELECT * FROM unit_of_measurement WHERE id = ?;"
+	return fetch[schema.UOM](query, id)
 }
 
 func NewUOM(uom schema.UOM) error {
@@ -44,8 +24,15 @@ func NewUOM(uom schema.UOM) error {
 
 func UpdateUOM(uom schema.UOM) error {
 	query := `UPDATE unit_of_measurement
-						SET code = :code,
-						name = :name
+						SET
+							code = CASE
+								WHEN :code = '' THEN code
+								ELSE COALESCE(:code, code)
+							END,
+							name = CASE
+								WHEN :name = '' THEN name
+								ELSE COALESCE(:name, name)
+							END
 						WHERE id = :id;`
 
 	_, err := NamedExec(query, uom)
@@ -55,25 +42,15 @@ func UpdateUOM(uom schema.UOM) error {
 
 func DeleteUOM(id int) (int64, error) {
 	query := `DELETE FROM unit_of_measurement WHERE id = ?;`
+	return delete(query, id)
+}
 
-	result, err := Exec(query, id)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.RowsAffected()
+func UOMIDExists(id int) (bool, error) {
+	query := `SELECT * FROM unit_of_measurement WHERE id = ?`
+	return exists[schema.UOM](query, id)
 }
 
 func UOMNameExists(name string) (bool, error) {
-	var (
-		list  []schema.UOM
-		query = `SELECT * FROM unit_of_measurement WHERE name = LOWER(?);`
-	)
-
-	err := Select(&list, query, strings.ToLower(name))
-	if err != nil {
-		return false, err
-	}
-
-	return (len(list) > 0), nil
+	query := `SELECT * FROM unit_of_measurement WHERE name = LOWER(?);`
+	return exists[schema.UOM](query, name)
 }
