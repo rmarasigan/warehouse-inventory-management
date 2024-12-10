@@ -2,6 +2,10 @@
 
 A simple Warehouse Inventory Management System that is designed to help you manage and track inventory within a warehouse.
 
+> [!WARNING]
+>
+> This project is for learning purposes and should not be used in production environments.
+
 ### Running the Application
 
 ```bash
