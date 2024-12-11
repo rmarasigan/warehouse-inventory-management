@@ -1,61 +1,20 @@
 package mysql
 
 import (
-	"strings"
-
-	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 )
 
-func StorageList() ([]apischema.Storage, error) {
-	var (
-		list  []schema.Storage
-		query = "SELECT * FROM storage;"
-	)
-
-	err := Select(&list, query)
-	if err != nil {
-		return nil, err
-	}
-
-	var storages = convert.Schema(list, func(storage schema.Storage) apischema.Storage {
-		return apischema.Storage{
-			ID:          storage.ID,
-			Code:        storage.Code,
-			Name:        storage.Name,
-			Description: storage.Description.String,
-		}
-	})
-
-	return storages, nil
+func ListStorage() ([]schema.Storage, error) {
+	return fetch[schema.Storage]("SELECT * FROM storage;")
 }
 
-func GetStorage(id int) ([]apischema.Storage, error) {
-	var (
-		list  []schema.Storage
-		query = `SELECT * FROM storage WHERE id = ?;`
-	)
-
-	err := Select(&list, query, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var storages = convert.Schema(list, func(storage schema.Storage) apischema.Storage {
-		return apischema.Storage{
-			ID:          storage.ID,
-			Code:        storage.Code,
-			Name:        storage.Name,
-			Description: storage.Description.String,
-		}
-	})
-
-	return storages, nil
+func GetStorage(id int) ([]schema.Storage, error) {
+	return fetch[schema.Storage]("SELECT * FROM storage WHERE id = ?;", id)
 }
 
 func NewStorage(storage schema.Storage) error {
-	query := `INSERT INTO storage (id, code, name, description) VALUES (:id, :code, :name, :description)`
+	query := `INSERT INTO storage (code, name, description)
+						VALUES (:code, :name, :description);`
 
 	_, err := NamedExec(query, storage)
 
@@ -64,9 +23,19 @@ func NewStorage(storage schema.Storage) error {
 
 func UpdateStorage(storage schema.Storage) error {
 	query := `UPDATE storage
-						SET code = :code,
-						name = :name,
-						description = :description
+						SET
+							code = CASE
+								WHEN :code = '' THEN code
+								ELSE COALESCE(:code, code)
+							END,
+							name = CASE
+								WHEN :name = '' THEN name
+								ELSE COALESCE(:name, name)
+							END,
+							description = CASE
+								WHEN :description = '' THEN description
+								ELSE COALESCE(:description, description)
+							END
 						WHERE id = :id;`
 
 	_, err := NamedExec(query, storage)
@@ -75,35 +44,13 @@ func UpdateStorage(storage schema.Storage) error {
 }
 
 func DeleteStorage(id int) (int64, error) {
-	query := `DELETE FROM storage WHERE id = ?;`
-
-	result, err := Exec(query, id)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.RowsAffected()
+	return delete("DELETE FROM storage WHERE id = ?;", id)
 }
 
 func StorageIDExists(id int) (bool, error) {
-	storages, err := GetStorage(id)
-	if err != nil {
-		return false, err
-	}
-
-	return (len(storages) > 0), nil
+	return entityExists(GetStorage, id)
 }
 
 func StorageNameExists(name string) (bool, error) {
-	var (
-		list  []schema.Storage
-		query = `SELECT * FROM storage WHERE name = LOWER(?);`
-	)
-
-	err := Select(&list, query, strings.ToLower(name))
-	if err != nil {
-		return false, err
-	}
-
-	return (len(list) > 0), nil
+	return exists[schema.Storage]("SELECT * FROM storage WHERE name = LOWER(?);", name)
 }

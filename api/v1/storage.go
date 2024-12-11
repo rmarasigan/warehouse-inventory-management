@@ -36,13 +36,22 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 func getStorages(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	storages, err := getList(r, mysql.GetStorage, mysql.StorageList)
+	list, err := getList(r, mysql.GetStorage, mysql.ListStorage)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)
 
 		return
 	}
+
+	storages := convert.Schema(list, func(storage schema.Storage) apischema.Storage {
+		return apischema.Storage{
+			ID:          storage.ID,
+			Code:        storage.Code,
+			Name:        storage.Name,
+			Description: storage.Description.String,
+		}
+	})
 
 	response.Success(w, storages)
 }
@@ -77,7 +86,7 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var storages = convert.Schema(data, func(storage apischema.Storage) schema.Storage {
+	storages := convert.Schema(data, func(storage apischema.Storage) schema.Storage {
 		return schema.Storage{
 			ID:          storage.ID,
 			Code:        storage.Code,
@@ -123,7 +132,7 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storages, err := apischema.NewStorage(body)
+	data, err := apischema.NewStorage(body)
 	if err != nil {
 		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("any", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
@@ -131,30 +140,28 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	storages := convert.Schema(data, func(storage apischema.Storage) schema.Storage {
+		return schema.Storage{
+			ID:          storage.ID,
+			Code:        storage.Code,
+			Name:        storage.Name,
+			Description: sql.NullString{String: storage.Description, Valid: true},
+		}
+	})
+
 	for _, storage := range storages {
 		storageID := storage.ID
 
-		results, err := mysql.GetStorage(storageID)
+		existing, err := mysql.StorageIDExists(storageID)
 		if err != nil {
 			log.Error(err.Error(), slog.Any("id", storageID), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to retrieve storage"})
+			response.InternalServer(w, response.Response{Error: "failed to validate if storage id exists"})
 
 			return
 		}
 
-		dbstorages := convert.Schema(results, func(result apischema.Storage) schema.Storage {
-			return schema.Storage{
-				ID:          result.ID,
-				Code:        result.Code,
-				Name:        result.Name,
-				Description: sql.NullString{String: result.Description, Valid: true},
-			}
-		})
-
-		for _, dbstorage := range dbstorages {
-			dbstorage.UpdateValues(storage)
-
-			err := mysql.UpdateStorage(dbstorage)
+		if existing {
+			err := mysql.UpdateStorage(storage)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("id", storageID), slog.Any("path", r.URL.Path))
 				response.InternalServer(w, response.Response{Error: "failed to update storage"})

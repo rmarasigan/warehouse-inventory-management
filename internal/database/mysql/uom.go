@@ -1,41 +1,20 @@
 package mysql
 
 import (
-	"strings"
-
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-func UOMList() ([]schema.UOM, error) {
-	var (
-		list  []schema.UOM
-		query = "SELECT * FROM unit_of_measurement;"
-	)
-
-	err := Select(&list, query)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+func ListUOM() ([]schema.UOM, error) {
+	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement;")
 }
 
 func GetUOM(id int) ([]schema.UOM, error) {
-	var (
-		list  []schema.UOM
-		query = "SELECT * FROM unit_of_measurement WHERE id = ?;"
-	)
-
-	err := Select(&list, query, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?;", id)
 }
 
 func NewUOM(uom schema.UOM) error {
-	query := `INSERT INTO unit_of_measurement (id, code, name) VALUES (:id, :code, :name)`
+	query := `INSERT INTO unit_of_measurement (code, name)
+						VALUES (:code, :name)`
 
 	_, err := NamedExec(query, uom)
 
@@ -44,8 +23,15 @@ func NewUOM(uom schema.UOM) error {
 
 func UpdateUOM(uom schema.UOM) error {
 	query := `UPDATE unit_of_measurement
-						SET code = :code,
-						name = :name
+						SET
+							code = CASE
+								WHEN :code = '' THEN code
+								ELSE COALESCE(:code, code)
+							END,
+							name = CASE
+								WHEN :name = '' THEN name
+								ELSE COALESCE(:name, name)
+							END
 						WHERE id = :id;`
 
 	_, err := NamedExec(query, uom)
@@ -54,26 +40,13 @@ func UpdateUOM(uom schema.UOM) error {
 }
 
 func DeleteUOM(id int) (int64, error) {
-	query := `DELETE FROM unit_of_measurement WHERE id = ?;`
+	return delete("DELETE FROM unit_of_measurement WHERE id = ?;", id)
+}
 
-	result, err := Exec(query, id)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.RowsAffected()
+func UOMIDExists(id int) (bool, error) {
+	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?", id)
 }
 
 func UOMNameExists(name string) (bool, error) {
-	var (
-		list  []schema.UOM
-		query = `SELECT * FROM unit_of_measurement WHERE name = LOWER(?);`
-	)
-
-	err := Select(&list, query, strings.ToLower(name))
-	if err != nil {
-		return false, err
-	}
-
-	return (len(list) > 0), nil
+	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE name = LOWER(?);", name)
 }

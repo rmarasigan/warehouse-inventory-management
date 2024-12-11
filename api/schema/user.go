@@ -1,7 +1,6 @@
 package apischema
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -22,20 +21,5 @@ func (user User) SetDateCreated() string {
 }
 
 func NewUser(data []byte) ([]User, error) {
-	var (
-		user  User
-		users []User
-	)
-
-	err := json.Unmarshal(data, &users)
-	if err == nil {
-		return users, nil
-	}
-
-	err = json.Unmarshal(data, &user)
-	if err != nil {
-		return nil, err
-	}
-
-	return []User{user}, nil
+	return unmarshal[User](data)
 }

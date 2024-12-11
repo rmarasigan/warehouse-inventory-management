@@ -35,13 +35,21 @@ func uomHandler(w http.ResponseWriter, r *http.Request) {
 func getUOMs(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	uoms, err := getList(r, mysql.GetUOM, mysql.UOMList)
+	list, err := getList(r, mysql.GetUOM, mysql.ListUOM)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)
 
 		return
 	}
+
+	uoms := convert.Schema(list, func(uom schema.UOM) apischema.UOM {
+		return apischema.UOM{
+			ID:   uom.ID,
+			Code: uom.Code,
+			Name: uom.Name,
+		}
+	})
 
 	response.Success(w, uoms)
 }
@@ -136,21 +144,27 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, uom := range data {
+	uoms := convert.Schema(data, func(uom apischema.UOM) schema.UOM {
+		return schema.UOM{
+			ID:   uom.ID,
+			Code: uom.Code,
+			Name: uom.Name,
+		}
+	})
+
+	for _, uom := range uoms {
 		uomID := uom.ID
 
-		dbuoms, err := mysql.GetUOM(uomID)
+		existing, err := mysql.UOMIDExists(uomID)
 		if err != nil {
 			log.Error(err.Error(), slog.Any("uom", uom), slog.Any("request", uoms), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to retrieve uom"})
+			response.InternalServer(w, response.Response{Error: "failed to validate if uom id exists"})
 
 			return
 		}
 
-		for _, dbuom := range dbuoms {
-			dbuom.UpdateValues(uom)
-
-			err = mysql.UpdateUOM(dbuom)
+		if existing {
+			err = mysql.UpdateUOM(uom)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("id", uomID), slog.Any("uom", uom), slog.Any("request", uoms), slog.Any("path", r.URL.Path))
 				response.InternalServer(w, response.Response{Error: "failed to update uom"})
@@ -159,6 +173,8 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+
+	response.Success(w, nil)
 }
 
 func deleteUOM(w http.ResponseWriter, r *http.Request) {

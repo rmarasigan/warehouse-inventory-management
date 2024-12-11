@@ -1,56 +1,20 @@
 package mysql
 
 import (
-	"strings"
-
-	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 )
 
 // RoleList retrieves a list of roles.
-func RoleList() ([]apischema.Role, error) {
-	var (
-		list  []schema.Role
-		query = "SELECT * FROM role;"
-	)
-
-	err := Select(&list, query)
-	if err != nil {
-		return nil, err
-	}
-
-	var roles = convert.Schema(list, func(role schema.Role) apischema.Role {
-		return apischema.Role{
-			ID:   role.ID,
-			Name: role.Name,
-		}
-	})
-
-	return roles, nil
+func ListRole() ([]schema.Role, error) {
+	return fetch[schema.Role]("SELECT * FROM role;")
 }
 
 // GetRole retrieves a specific role.
 //
 // Parameter:
 //   - id: The unique role id in the 'role' table.
-func GetRole(id int) ([]apischema.Role, error) {
-	var list []schema.Role
-	query := `SELECT * FROM role WHERE id = ?;`
-
-	err := Select(&list, query, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var roles = convert.Schema(list, func(role schema.Role) apischema.Role {
-		return apischema.Role{
-			ID:   role.ID,
-			Name: role.Name,
-		}
-	})
-
-	return roles, nil
+func GetRole(id int) ([]schema.Role, error) {
+	return fetch[schema.Role]("SELECT * FROM role WHERE id = ?;", id)
 }
 
 // NewRole inserts a new role information into the 'role' table.
@@ -58,10 +22,7 @@ func GetRole(id int) ([]apischema.Role, error) {
 // Parameter:
 //   - role: The role information that will be inserted.
 func NewRole(role schema.Role) error {
-	query := `INSERT INTO role (id, name) VALUES (:id, :name);`
-
-	_, err := NamedExec(query, role)
-
+	_, err := NamedExec("INSERT INTO role (name) VALUES (:name);", role)
 	return err
 }
 
@@ -72,7 +33,11 @@ func NewRole(role schema.Role) error {
 //   - role: The role information that will be modified.
 func UpdateRole(role schema.Role) error {
 	query := `UPDATE role
-						SET name = :name
+						SET
+							name = CASE
+								WHEN :name = '' THEN name
+								ELSE COALESCE(:name, name)
+							END
 						WHERE id = :id;`
 
 	_, err := NamedExec(query, role)
@@ -85,14 +50,7 @@ func UpdateRole(role schema.Role) error {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func DeleteRole(id int) (int64, error) {
-	query := `DELETE FROM role WHERE id = ?`
-
-	result, err := Exec(query, id)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.RowsAffected()
+	return delete("DELETE FROM role WHERE id = ?;", id)
 }
 
 // RoleIDExists checks if a specific role id exists in the 'role' table.
@@ -100,12 +58,7 @@ func DeleteRole(id int) (int64, error) {
 // Parameter:
 //   - id: The unique role id in the 'role' table.
 func RoleIDExists(id int) (bool, error) {
-	roles, err := GetRole(id)
-	if err != nil {
-		return false, err
-	}
-
-	return (len(roles) > 0), nil
+	return entityExists(GetRole, id)
 }
 
 // RoleNameExists checks if a specific role exists in the 'role' table.
@@ -113,13 +66,5 @@ func RoleIDExists(id int) (bool, error) {
 // Parameter:
 //   - name: The role name that will be checked.
 func RoleNameExists(name string) (bool, error) {
-	var list []schema.Role
-	query := `SELECT * FROM role WHERE name = LOWER(?);`
-
-	err := Select(&list, query, strings.ToLower(name))
-	if err != nil {
-		return false, err
-	}
-
-	return (len(list) > 0), nil
+	return exists[schema.Role]("SELECT * FROM role WHERE name = LOWER(?);", name)
 }

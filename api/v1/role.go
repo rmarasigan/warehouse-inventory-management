@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -39,33 +38,20 @@ func roleHandler(w http.ResponseWriter, r *http.Request) {
 func getRoles(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	var roles []apischema.Role
-	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
+	list, err := getList(r, mysql.GetRole, mysql.ListRole)
+	if err != nil {
+		log.Error(err.Error())
+		response.InternalServer(w, nil)
 
-	if len(idParam) > 0 {
-		id, err := strconv.Atoi(idParam)
-		if err != nil {
-			log.Error(err.Error())
-			response.InternalServer(w, nil)
-		}
-
-		result, err := mysql.GetRole(id)
-		if err != nil {
-			log.Error(err.Error())
-			response.InternalServer(w, nil)
-		}
-
-		roles = result
-
-	} else {
-		result, err := mysql.RoleList()
-		if err != nil {
-			log.Error(err.Error())
-			response.InternalServer(w, nil)
-		}
-
-		roles = result
+		return
 	}
+
+	roles := convert.Schema(list, func(role schema.Role) apischema.Role {
+		return apischema.Role{
+			ID:   role.ID,
+			Name: role.Name,
+		}
+	})
 
 	response.Success(w, roles)
 }
@@ -112,9 +98,8 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var roles = convert.Schema(data, func(role apischema.Role) schema.Role {
+	roles := convert.Schema(data, func(role apischema.Role) schema.Role {
 		return schema.Role{
-			ID:   role.ID,
 			Name: role.Name,
 		}
 	})
@@ -176,7 +161,7 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 			log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles), slog.Any("path", r.URL.Path))
 			response.InternalServer(w, response.Response{Error: "failed to validate if role id exists", Details: role})
 
-			break
+			return
 		}
 
 		if existing {
@@ -185,7 +170,7 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 				log.Error(err.Error(), slog.Any("id", roleID), slog.Any("path", r.URL.Path))
 				response.InternalServer(w, response.Response{Error: "failed to update role"})
 
-				break
+				return
 			}
 		}
 	}
