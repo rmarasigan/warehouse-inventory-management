@@ -39,7 +39,7 @@ func Connect() {
 		}
 
 		// Data Source Name
-		var dsn = fmt.Sprintf("%s:%s@/%s", dbuser, dbpassword, dbname)
+		var dsn = fmt.Sprintf("%s:%s@/%s?parseTime=true", dbuser, dbpassword, dbname)
 
 		// Connects to the database and attempts a ping.
 		db, err := sqlx.Connect(mysql, dsn)
