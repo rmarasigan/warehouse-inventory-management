@@ -1,52 +1,35 @@
 package mysql
 
 import (
+	"fmt"
+
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-func ListUOM() ([]schema.UOM, error) {
-	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement;")
+func ListUOM() ([]schema.UOM, error) { return FetchItems[schema.UOM](UoMTable) }
+
+func GetUOMByID(id int) (schema.UOM, error) {
+	return RetrieveItemByField[schema.UOM](UoMTable, "id", id)
 }
 
-func GetUOM(id int) ([]schema.UOM, error) {
-	return fetch[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?;", id)
+func GetUOMByName(name string) (schema.UOM, error) {
+	return RetrieveItemByField[schema.UOM](UoMTable, "name", name, "LOWER(?)")
 }
 
 func NewUOM(uom schema.UOM) error {
-	query := `INSERT INTO unit_of_measurement (code, name)
-						VALUES (:code, :name)`
-
-	_, err := NamedExec(query, uom)
-
-	return err
+	return InsertRecord(fmt.Sprintf("INSERT INTO %s (code, name) VALUES (:code, :name)", UoMTable), uom)
 }
 
 func UpdateUOM(uom schema.UOM) error {
-	query := `UPDATE unit_of_measurement
-						SET
-							code = CASE
-								WHEN :code = '' THEN code
-								ELSE COALESCE(:code, code)
-							END,
-							name = CASE
-								WHEN :name = '' THEN name
-								ELSE COALESCE(:name, name)
-							END
-						WHERE id = :id;`
-
-	_, err := NamedExec(query, uom)
-
-	return err
+	return UpdateRecordByID(UoMTable, uom, []string{"code", "name"})
 }
 
-func DeleteUOM(id int) (int64, error) {
-	return delete("DELETE FROM unit_of_measurement WHERE id = ?;", id)
-}
+func DeleteUOM(id int) (int64, error) { return DeleteRecordByID(UoMTable, id) }
 
 func UOMIDExists(id int) (bool, error) {
-	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE id = ?", id)
+	return exists(func() (schema.UOM, error) { return GetUOMByID(id) })
 }
 
 func UOMNameExists(name string) (bool, error) {
-	return exists[schema.UOM]("SELECT * FROM unit_of_measurement WHERE name = LOWER(?);", name)
+	return exists(func() (schema.UOM, error) { return GetUOMByName(name) })
 }

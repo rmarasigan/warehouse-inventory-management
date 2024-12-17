@@ -38,7 +38,7 @@ func roleHandler(w http.ResponseWriter, r *http.Request) {
 func getRoles(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	list, err := getList(r, mysql.GetRole, mysql.ListRole)
+	list, err := getList(r, mysql.GetRoleByID, mysql.ListRole)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)

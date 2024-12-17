@@ -1,56 +1,35 @@
 package mysql
 
 import (
+	"fmt"
+
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-func ListStorage() ([]schema.Storage, error) {
-	return fetch[schema.Storage]("SELECT * FROM storage;")
+func ListStorage() ([]schema.Storage, error) { return FetchItems[schema.Storage](StorageTable) }
+
+func GetStorageByID(id int) (schema.Storage, error) {
+	return RetrieveItemByField[schema.Storage](StorageTable, "id", id)
 }
 
-func GetStorage(id int) ([]schema.Storage, error) {
-	return fetch[schema.Storage]("SELECT * FROM storage WHERE id = ?;", id)
+func GetStorageByName(name string) (schema.Storage, error) {
+	return RetrieveItemByField[schema.Storage](StorageTable, "name", name, "LOWER(?)")
 }
 
 func NewStorage(storage schema.Storage) error {
-	query := `INSERT INTO storage (code, name, description)
-						VALUES (:code, :name, :description);`
-
-	_, err := NamedExec(query, storage)
-
-	return err
+	return InsertRecord(fmt.Sprintf("INSERT INTO %s (code, name, description) VALUES (:code, :name, :description);", StorageTable), storage)
 }
 
 func UpdateStorage(storage schema.Storage) error {
-	query := `UPDATE storage
-						SET
-							code = CASE
-								WHEN :code = '' THEN code
-								ELSE COALESCE(:code, code)
-							END,
-							name = CASE
-								WHEN :name = '' THEN name
-								ELSE COALESCE(:name, name)
-							END,
-							description = CASE
-								WHEN :description = '' THEN description
-								ELSE COALESCE(:description, description)
-							END
-						WHERE id = :id;`
-
-	_, err := NamedExec(query, storage)
-
-	return err
+	return UpdateRecordByID(StorageTable, storage, []string{"code", "name", "description"})
 }
 
-func DeleteStorage(id int) (int64, error) {
-	return delete("DELETE FROM storage WHERE id = ?;", id)
-}
+func DeleteStorage(id int) (int64, error) { return DeleteRecordByID(StorageTable, id) }
 
 func StorageIDExists(id int) (bool, error) {
-	return entityExists(GetStorage, id)
+	return exists(func() (schema.Storage, error) { return GetStorageByID(id) })
 }
 
 func StorageNameExists(name string) (bool, error) {
-	return exists[schema.Storage]("SELECT * FROM storage WHERE name = LOWER(?);", name)
+	return exists(func() (schema.Storage, error) { return GetStorageByName(name) })
 }

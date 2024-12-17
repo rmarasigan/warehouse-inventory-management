@@ -35,7 +35,7 @@ func uomHandler(w http.ResponseWriter, r *http.Request) {
 func getUOMs(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	list, err := getList(r, mysql.GetUOM, mysql.ListUOM)
+	list, err := getList(r, mysql.GetUOMByID, mysql.ListUOM)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)
