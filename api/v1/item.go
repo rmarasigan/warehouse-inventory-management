@@ -169,6 +169,7 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 
 	items := convert.Schema(data, func(item apischema.Item) schema.Item {
 		return schema.Item{
+			ID:           item.ID,
 			Name:         item.Name,
 			Description:  sql.NullString{Valid: true, String: item.Description},
 			Quantity:     item.Quantity,

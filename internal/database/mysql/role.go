@@ -1,10 +1,6 @@
 package mysql
 
-import (
-	"fmt"
-
-	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-)
+import "github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 
 // RoleList retrieves a list of roles.
 func ListRole() ([]schema.Role, error) { return FetchItems[schema.Role](RoleTable) }
@@ -26,7 +22,7 @@ func GetRoleByName(name string) (schema.Role, error) {
 // Parameter:
 //   - role: The role information that will be inserted.
 func NewRole(role schema.Role) error {
-	return InsertRecord(fmt.Sprintf("INSERT INTO %s (name) VALUES (:name);", RoleTable), role)
+	return InsertRecord(RoleTable, role, "name")
 }
 
 // UpdateRole updates/modifies the existing role information in the 'role'
@@ -35,7 +31,7 @@ func NewRole(role schema.Role) error {
 // Parameter:
 //   - role: The role information that will be modified.
 func UpdateRole(role schema.Role) error {
-	return UpdateRecordByID(RoleTable, role, []string{"name"})
+	return UpdateRecordByID(RoleTable, role, "name")
 }
 
 // DeleteRole deletes existing role in the 'role' table.

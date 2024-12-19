@@ -1,10 +1,6 @@
 package mysql
 
-import (
-	"fmt"
-
-	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-)
+import "github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 
 func ListStorage() ([]schema.Storage, error) { return FetchItems[schema.Storage](StorageTable) }
 
@@ -17,11 +13,11 @@ func GetStorageByName(name string) (schema.Storage, error) {
 }
 
 func NewStorage(storage schema.Storage) error {
-	return InsertRecord(fmt.Sprintf("INSERT INTO %s (code, name, description) VALUES (:code, :name, :description);", StorageTable), storage)
+	return InsertRecord(StorageTable, storage, "code", "name", "description")
 }
 
 func UpdateStorage(storage schema.Storage) error {
-	return UpdateRecordByID(StorageTable, storage, []string{"code", "name", "description"})
+	return UpdateRecordByID(StorageTable, storage, "code", "name", "description")
 }
 
 func DeleteStorage(id int) (int64, error) { return DeleteRecordByID(StorageTable, id) }

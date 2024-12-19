@@ -2,12 +2,13 @@ package mysql
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-// UserList retrieves a list of users.
-func UserList() ([]schema.User, error) { return FetchItems[schema.User](UserTable) }
+// ListUser retrieves a list of users.
+func ListUser() ([]schema.User, error) { return FetchItems[schema.User](UserTable) }
 
 func GetUserByID(id int) (schema.User, error) {
 	return RetrieveItemByField[schema.User](UserTable, "id", id)
@@ -27,10 +28,17 @@ func GetUserByName(firstName, lastName string) (schema.User, error) {
 // Parameter:
 //   - user: The user information that will be inserted.
 func NewUser(user schema.User) error {
-	query := fmt.Sprintf(`INSERT INTO %s (role_id, first_name, last_name, email, password, date_created)
-						VALUES (:role_id, :first_name, :last_name, :email, :password, :date_created);`, UserTable)
-
-	return InsertRecord(query, user)
+	return InsertRecord(
+		UserTable,
+		user,
+		"role_id",
+		"first_name",
+		"last_name",
+		"email",
+		"password",
+		"active",
+		"date_created",
+	)
 }
 
 // UpdateUser updates/modifies the existing user information in the user
@@ -39,15 +47,35 @@ func NewUser(user schema.User) error {
 // Parameters:
 //   - user: The user information that will be modified.
 func UpdateUser(user schema.User) error {
-	args := []string{"role_id", "first_name", "last_name", "email", "password"}
-	return UpdateRecordByID(UserTable, user, args)
+	return UpdateRecordByID(
+		UserTable,
+		user,
+		"role_id",
+		"first_name",
+		"last_name",
+		"email",
+		"password",
+		"date_modified",
+	)
 }
 
-// DeleteUser deletes existing user in the user table.
+func ActivateUser(id int) error {
+	query := fmt.Sprintf("UPDATE %s SET active = true, date_modified = ? WHERE id = ?", UserTable)
+	_, err := Exec(query, time.Now().UTC(), id)
+
+	return err
+}
+
+// DeleteUser updates the existing user 'active' field as 'false' in the user table.
 //
 // Parameter:
-//   - id: The unique user id that will be deleted.
-func DeleteUser(id int) (int64, error) { return DeleteRecordByID(UserTable, id) }
+//   - id: The unique user id that will be deactivated.
+func DeleteUser(id int) error {
+	query := fmt.Sprintf("UPDATE %s SET active = false, date_modified = ? WHERE id = ?", UserTable)
+	_, err := Exec(query, time.Now().UTC(), id)
+
+	return err
+}
 
 // UserExists checks if a specific user exists in the 'user' table.
 //

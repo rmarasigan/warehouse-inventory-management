@@ -1,10 +1,6 @@
 package mysql
 
-import (
-	"fmt"
-
-	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-)
+import "github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 
 func ListItem() ([]schema.Item, error) { return FetchItems[schema.Item](ItemTable) }
 
@@ -17,15 +13,34 @@ func GetItemByName(name string) (schema.Item, error) {
 }
 
 func NewItem(item schema.Item) error {
-	query := fmt.Sprintf(`INSERT INTO %s (name, description, quantity, unit_price, uom_id, stock_status, storage_id, created_by, date_created)
-						VALUES (:name, :description, :quantity, :unit_price, :uom_id, :stock_status, :storage_id, :created_by, :date_created);`, ItemTable)
+	fields := []string{
+		"name",
+		"description",
+		"quantity",
+		"unit_price",
+		"uom_id",
+		"stock_status",
+		"storage_id",
+		"created_by",
+		"date_created",
+	}
 
-	return InsertRecord(query, item)
+	return InsertRecord(ItemTable, item, fields...)
 }
 
 func UpdateItem(item schema.Item) error {
-	args := []string{"name", "description", "quantity", "quantity", "unit_price", "storage_id", "uom_id", "date_modified"}
-	return UpdateRecordByID(ItemTable, item, args)
+	fields := []string{
+		"name",
+		"description",
+		"quantity",
+		"quantity",
+		"unit_price",
+		"storage_id",
+		"uom_id",
+		"date_modified",
+	}
+
+	return UpdateRecordByID(ItemTable, item, fields...)
 }
 
 func DeleteItem(id int) (int64, error) { return DeleteRecordByID(ItemTable, id) }

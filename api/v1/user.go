@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -20,13 +21,18 @@ import (
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getUsers(w)
+		getUsers(w, r)
 
 	case http.MethodPost:
 		createUser(w, r)
 
 	case http.MethodPut:
-		updateUser(w, r)
+		if strings.HasSuffix(r.URL.Path, activateUser) {
+			activateUserAccount(w, r)
+
+		} else {
+			updateUser(w, r)
+		}
 
 	case http.MethodDelete:
 		deleteUser(w, r)
@@ -36,10 +42,10 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 // getUsers handles the HTTP request to retrieve a list of users. It writes
 // the list of users to the HTTP response with an HTTP OK status. If an error
 // occurs, it writes an HTTP Internal Server Error status.
-func getUsers(w http.ResponseWriter) {
+func getUsers(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	list, err := mysql.UserList()
+	list, err := getList(r, mysql.GetUserByID, mysql.ListUser)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)
@@ -53,8 +59,9 @@ func getUsers(w http.ResponseWriter) {
 			LastName:     user.LastName,
 			Email:        user.Email.String,
 			LastLogin:    user.LastLogin.String,
+			Active:       user.Active,
 			DateCreated:  user.DateCreated,
-			DateModified: user.DateModified.String,
+			DateModified: user.DateModified.Time,
 		}
 	})
 
@@ -110,7 +117,8 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 			LastName:    user.LastName,
 			Email:       sql.NullString{String: user.Email, Valid: true}, // Valid is 'true' if String is not NULL
 			Password:    user.Password,
-			DateCreated: user.SetDateCreated(),
+			Active:      true,
+			DateCreated: time.Now().UTC(),
 		}
 	})
 
@@ -164,12 +172,13 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 
 	users := convert.Schema(data, func(user apischema.User) schema.User {
 		return schema.User{
-			ID:        user.ID,
-			RoleID:    user.RoleID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     sql.NullString{String: user.Email, Valid: true},
-			Password:  user.Password,
+			ID:           user.ID,
+			RoleID:       user.RoleID,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        sql.NullString{String: user.Email, Valid: true},
+			Password:     user.Password,
+			DateModified: sql.NullTime{Time: time.Now().UTC(), Valid: true},
 		}
 	})
 
@@ -198,6 +207,26 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, nil)
 }
 
+func activateUserAccount(w http.ResponseWriter, r *http.Request) {
+	defer log.Panic()
+
+	id, err := parameterID(r)
+	if err != nil {
+		response.BadRequest(w, response.Response{Error: err.Error()})
+		return
+	}
+
+	err = mysql.ActivateUser(id)
+	if err != nil {
+		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		response.InternalServer(w, response.Response{Error: "failed to activate user account"})
+
+		return
+	}
+
+	response.Success(w, nil)
+}
+
 // deleteUser handles the HTTP request to delete a user. If an error occurs,
 // it writes either HTTP Internal Server Error or Bad Request status.
 func deleteUser(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +238,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	affected, err := mysql.DeleteUser(id)
+	err = mysql.DeleteUser(id)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to delete user account"})
@@ -217,5 +246,5 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
+	response.Success(w, nil)
 }

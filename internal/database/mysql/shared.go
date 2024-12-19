@@ -14,11 +14,12 @@ func retrieve[T any](query string, args ...any) (T, error) {
 
 	err := database.Get(&data, query, args...)
 	if err != nil {
-		trail.Warn("[retrieve] %s: %s", err.Error(), query)
-
 		if errors.Is(err, sql.ErrNoRows) {
+			trail.Warn("[retrieve] %s: %s", err.Error(), query)
 			return data, nil
 		}
+
+		trail.Error("[retrieve] %s: %s", err.Error(), query)
 
 		return data, err
 	}
@@ -31,7 +32,7 @@ func fetch[T any](query string, args ...any) ([]T, error) {
 
 	err := database.Select(&list, query, args...)
 	if err != nil {
-		trail.Warn("[fetch] %s: %s", err.Error(), query)
+		trail.Error("[fetch] %s: %s", err.Error(), query)
 		return nil, err
 	}
 
@@ -67,7 +68,7 @@ func exists[T any](fn func() (T, error)) (bool, error) {
 func delete[T any](query string, param T) (int64, error) {
 	result, err := database.ExecContext(context.Background(), query, param)
 	if err != nil {
-		trail.Warn("[delete] %s: %s", err.Error(), query)
+		trail.Error("[delete] %s: %s", err.Error(), query)
 		return 0, err
 	}
 

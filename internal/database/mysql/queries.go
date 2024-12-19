@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/trail"
 )
 
 // FetchItems retrieves all records from the specified table and returns them as a slice of the specified
@@ -71,9 +73,48 @@ func RetrieveItemByFields[T any](table string, conditions map[string]any, args .
 	return retrieve[T](query, args...)
 }
 
-func InsertRecord[T any](query string, record T) error {
+// InsertRecord creates a new record in the specified table using the provided data and field names.
+//
+// Parameters:
+//   - table: The name of the database where the record will be inserted.
+//   - record: The record to be inserted.
+//   - fields: A list of field names that specify which columns will be populated.
+//
+// Usage:
+//
+//	record := User{
+//	  Name:  "John Doe",
+//	  Email: "j.doe.email@example.com",
+//	}
+//
+//	err := InsertRecord(TableName, record, "name", "email")
+func InsertRecord(table string, record any, fields ...string) error {
+	if len(fields) == 0 {
+		return fmt.Errorf("must specify at least one field to perform insert operation")
+	}
+
+	var values []string
+
+	// Build the VALUES clause dynamically
+	for _, field := range fields {
+		values = append(values, fmt.Sprintf(":%s", field))
+	}
+
+	// Construct the INSERT query
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES (%s)",
+		table,
+		strings.Join(fields, ", "),
+		strings.Join(values, ", "),
+	)
+
 	_, err := database.NamedExec(query, record)
-	return err
+	if err != nil {
+		trail.Error("[insert] %s: %s", err.Error(), query)
+		return err
+	}
+
+	return nil
 }
 
 // UpdateRecordByID updates a specific record in the given table by its ID. The fields are
@@ -82,7 +123,7 @@ func InsertRecord[T any](query string, record T) error {
 // Parameters:
 //   - table: The name of the database to update.
 //   - record: The record to update, represented as a struct.
-//   - fields: A slice of field names to be included in the UPDATE query.
+//   - fields: A list of field names to be included in the UPDATE query.
 //
 // Usage:
 //
@@ -91,8 +132,12 @@ func InsertRecord[T any](query string, record T) error {
 //	  Email: "new.email@example.com",
 //	}
 //
-//	err := UpdateRecordByID(TableName, record, []string{"email"})
-func UpdateRecordByID(table string, record any, fields []string) error {
+//	err := UpdateRecordByID(TableName, record, "email")
+func UpdateRecordByID(table string, record any, fields ...string) error {
+	if len(fields) == 0 {
+		return fmt.Errorf("must specify at least one field to perform update operation")
+	}
+
 	var setClause []string
 
 	// Build the SET clause dynamically for fields to update
@@ -109,8 +154,12 @@ func UpdateRecordByID(table string, record any, fields []string) error {
 	)
 
 	_, err := database.NamedExec(query, record)
+	if err != nil {
+		trail.Error("[update] %s: %s", err.Error(), query)
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func DeleteRecordByID(table string, id int) (int64, error) {

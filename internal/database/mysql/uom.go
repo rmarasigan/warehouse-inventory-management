@@ -1,10 +1,6 @@
 package mysql
 
-import (
-	"fmt"
-
-	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
-)
+import "github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 
 func ListUOM() ([]schema.UOM, error) { return FetchItems[schema.UOM](UoMTable) }
 
@@ -16,13 +12,9 @@ func GetUOMByName(name string) (schema.UOM, error) {
 	return RetrieveItemByField[schema.UOM](UoMTable, "name", name, "LOWER(?)")
 }
 
-func NewUOM(uom schema.UOM) error {
-	return InsertRecord(fmt.Sprintf("INSERT INTO %s (code, name) VALUES (:code, :name)", UoMTable), uom)
-}
+func NewUOM(uom schema.UOM) error { return InsertRecord(UoMTable, uom, "code", "name") }
 
-func UpdateUOM(uom schema.UOM) error {
-	return UpdateRecordByID(UoMTable, uom, []string{"code", "name"})
-}
+func UpdateUOM(uom schema.UOM) error { return UpdateRecordByID(UoMTable, uom, "code", "name") }
 
 func DeleteUOM(id int) (int64, error) { return DeleteRecordByID(UoMTable, id) }
 

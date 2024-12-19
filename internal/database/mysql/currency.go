@@ -24,13 +24,13 @@ func ActivateCurrency(code string) error {
 		return err
 	}
 
-	const disableQuery = `UPDATE currency SET active = false WHERE id = ?;`
+	const disableQuery = "UPDATE currency SET active = false WHERE id = ?;"
 	_, err = Exec(disableQuery, active.ID)
 	if err != nil {
 		return err
 	}
 
-	const enableQuery = `UPDATE currency SET active = true WHERE code = ?;`
+	const enableQuery = "UPDATE currency SET active = true WHERE code = ?;"
 	_, err = Exec(enableQuery, code)
 	if err != nil {
 		return err
