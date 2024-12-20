@@ -36,7 +36,7 @@ func storageHandler(w http.ResponseWriter, r *http.Request) {
 func getStorages(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	list, err := getList(r, mysql.GetStorage, mysql.ListStorage)
+	list, err := getList(r, mysql.GetStorageByID, mysql.ListStorage)
 	if err != nil {
 		log.Error(err.Error())
 		response.InternalServer(w, nil)

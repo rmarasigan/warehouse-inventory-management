@@ -82,3 +82,12 @@ func ValidateStorage(input []byte) (bool, []string) {
 func ValidateUOM(input []byte) (bool, []string) {
 	return isValid(input, basePath+"uoms.json")
 }
+
+// ValidateItem validates the input JSON against the items schema.
+//
+// Returns:
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
+func ValidateItem(input []byte) (bool, []string) {
+	return isValid(input, basePath+"items.json")
+}

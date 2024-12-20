@@ -2,6 +2,7 @@ package schema
 
 import (
 	"database/sql"
+	"time"
 )
 
 type User struct {
@@ -12,6 +13,7 @@ type User struct {
 	Email        sql.NullString `db:"email"`
 	Password     string         `db:"password"`
 	LastLogin    sql.NullString `db:"last_login"`
-	DateCreated  string         `db:"date_created"`
-	DateModified sql.NullString `db:"date_modified"`
+	Active       bool           `db:"active"`
+	DateCreated  time.Time      `db:"date_created"`
+	DateModified sql.NullTime   `db:"date_modified"`
 }

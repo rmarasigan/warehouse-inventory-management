@@ -25,7 +25,7 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 	default:
 		switch segment {
-		case users:
+		case users, activateUser:
 			userHandler(w, r)
 
 		case roles:
@@ -36,6 +36,12 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 
 		case uoms:
 			uomHandler(w, r)
+
+		case items:
+			itemHandler(w, r)
+
+		case currencies, activateCurrency:
+			currencyHandler(w, r)
 		}
 
 		return

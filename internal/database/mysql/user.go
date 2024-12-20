@@ -1,12 +1,26 @@
 package mysql
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
 
-// UserList retrieves a list of users.
-func UserList() ([]schema.User, error) {
-	return fetch[schema.User]("SELECT * FROM user;")
+// ListUser retrieves a list of users.
+func ListUser() ([]schema.User, error) { return FetchItems[schema.User](UserTable) }
+
+func GetUserByID(id int) (schema.User, error) {
+	return RetrieveItemByField[schema.User](UserTable, "id", id)
+}
+
+func GetUserByName(firstName, lastName string) (schema.User, error) {
+	conditions := map[string]any{
+		"first_name": "?",
+		"last_name":  "?",
+	}
+
+	return RetrieveItemByFields[schema.User](UserTable, conditions, firstName, lastName)
 }
 
 // NewUser inserts new user information into the 'user' table.
@@ -14,12 +28,17 @@ func UserList() ([]schema.User, error) {
 // Parameter:
 //   - user: The user information that will be inserted.
 func NewUser(user schema.User) error {
-	query := `INSERT INTO user (role_id, first_name, last_name, email, password, date_created)
-						VALUES (:role_id, :first_name, :last_name, :email, :password, :date_created);`
-
-	_, err := NamedExec(query, user)
-
-	return err
+	return InsertRecord(
+		UserTable,
+		user,
+		"role_id",
+		"first_name",
+		"last_name",
+		"email",
+		"password",
+		"active",
+		"date_created",
+	)
 }
 
 // UpdateUser updates/modifies the existing user information in the user
@@ -28,41 +47,34 @@ func NewUser(user schema.User) error {
 // Parameters:
 //   - user: The user information that will be modified.
 func UpdateUser(user schema.User) error {
-	query := `UPDATE user
-						SET
-							role_id = CASE
-								WHEN :role_id = '' THEN role_id
-								ELSE COALESCE(:role_id, role_id)
-							END,
-							first_name = CASE
-								WHEN :first_name = '' THEN first_name
-								ELSE COALESCE(:first_name, first_name)
-							END,
-							last_name = CASE
-								WHEN :last_name = '' THEN last_name
-								ELSE COALESCE(:last_name, last_name)
-							END,
-							email = CASE
-								WHEN :email = '' THEN email
-								ELSE COALESCE(:email, email)
-							END,
-							password = CASE
-								WHEN :password = '' THEN password
-								ELSE COALESCE(:password, password)
-							END
-						WHERE id = :id;`
+	return UpdateRecordByID(
+		UserTable,
+		user,
+		"role_id",
+		"first_name",
+		"last_name",
+		"email",
+		"password",
+		"date_modified",
+	)
+}
 
-	_, err := NamedExec(query, user)
+func ActivateUser(id int) error {
+	query := fmt.Sprintf("UPDATE %s SET active = true, date_modified = ? WHERE id = ?", UserTable)
+	_, err := Exec(query, time.Now().UTC(), id)
 
 	return err
 }
 
-// DeleteUser deletes existing user in the user table.
+// DeleteUser updates the existing user 'active' field as 'false' in the user table.
 //
 // Parameter:
-//   - id: The unique user id that will be deleted.
-func DeleteUser(id int) (int64, error) {
-	return delete("DELETE FROM user WHERE id = ?;", id)
+//   - id: The unique user id that will be deactivated.
+func DeleteUser(id int) error {
+	query := fmt.Sprintf("UPDATE %s SET active = false, date_modified = ? WHERE id = ?", UserTable)
+	_, err := Exec(query, time.Now().UTC(), id)
+
+	return err
 }
 
 // UserExists checks if a specific user exists in the 'user' table.
@@ -70,7 +82,7 @@ func DeleteUser(id int) (int64, error) {
 // Parameter:
 //   - user: The user information that will be checked.
 func UserExists(user schema.User) (bool, error) {
-	return exists[schema.User]("SELECT * FROM user WHERE (first_name = ? AND last_name = ?;", user.FirstName, user.LastName, user.Password)
+	return exists(func() (schema.User, error) { return GetUserByName(user.FirstName, user.LastName) })
 }
 
 // UserIDExists checks if a specific user ID exists in the 'user' table.
@@ -78,5 +90,5 @@ func UserExists(user schema.User) (bool, error) {
 // Parameter:
 //   - id: The unique user id that will be checked.
 func UserIDExists(id int) (bool, error) {
-	return exists[schema.User]("SELECT * FROM user WHERE id = ?;", id)
+	return exists(func() (schema.User, error) { return GetUserByID(id) })
 }

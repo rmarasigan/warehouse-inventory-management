@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -28,29 +29,40 @@ func parameterID(r *http.Request) (int, error) {
 	return id, nil
 }
 
-func getList[T any](r *http.Request, get func(id int) ([]T, error), list func() ([]T, error)) ([]T, error) {
+func getList[T any](r *http.Request, get func(id int) (T, error), list func() ([]T, error)) ([]T, error) {
 	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
 
-	if len(idParam) > 0 {
+	// Check if the "id" parameter is provided.
+	if idParam != "" {
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
 			return nil, err
 		}
 
-		// Fetch data for the given id
-		result, err := get(id)
+		// Fetch data for the given ID
+		item, err := get(id)
 		if err != nil {
 			return nil, fmt.Errorf("get: %w", err)
 		}
 
-		return result, nil
+		// Return an empty array if it is zero value
+		if reflect.ValueOf(item).IsZero() {
+			return []T{}, nil
+		}
 
+		// Wrap the single item in an array
+		return []T{item}, nil
 	}
 
 	// Fetch all the data
 	result, err := list()
 	if err != nil {
 		return nil, fmt.Errorf("list: %w", err)
+	}
+
+	// Ensure result is not nil
+	if result == nil {
+		result = []T{}
 	}
 
 	return result, nil
