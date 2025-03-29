@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -12,38 +11,30 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 	defer log.Panic()
 	var method = r.Method
 
-	switch {
-	case !IsValidMethod(method):
-		log.Warn("unhandled method", slog.String("method", method))
-		response.MethodNotAllowed(w, method)
-
-		return
-
-	case !IsValidPathMethod(method, segment):
+	// Validate the method and path
+	if !IsValidPathMethod(method, segment) {
 		response.BadRequest(w, response.Response{Error: "provided path or method is invalid"})
 		return
+	}
 
-	default:
-		switch segment {
-		case users, activateUser:
-			userHandler(w, r)
+	handlers := map[string]func(http.ResponseWriter, *http.Request){
+		users:            userHandler,
+		activateUser:     userHandler,
+		roles:            roleHandler,
+		storages:         storageHandler,
+		uoms:             uomHandler,
+		currencies:       currencyHandler,
+		activateCurrency: currencyHandler,
+		items:            itemHandler,
+		transaction:      transactionHandler,
+	}
 
-		case roles:
-			roleHandler(w, r)
-
-		case storages:
-			storageHandler(w, r)
-
-		case uoms:
-			uomHandler(w, r)
-
-		case items:
-			itemHandler(w, r)
-
-		case currencies, activateCurrency:
-			currencyHandler(w, r)
-		}
-
+	// Handle the request if the segment is valid
+	handler, exists := handlers[segment]
+	if exists {
+		handler(w, r)
 		return
 	}
+
+	response.NotFound(w, response.Response{Message: "unrecognized path"})
 }
