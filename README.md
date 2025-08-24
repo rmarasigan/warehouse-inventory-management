@@ -22,8 +22,8 @@ dev@dev:~/warehouse-inventory-management$ go build; ./warehouse-inventory-manage
 ```
 
 ## Requirements
-* **Go**: v1.22
-* **MySQL**: v8.0.35
+* **Go**: v1.24
+* **MySQL**: 8.0.43
 
 ### Configuration
 > [!IMPORTANT]
@@ -41,6 +41,35 @@ To install [openapi2jsonschema](https://github.com/instrumenta/openapi2jsonschem
 ```bash
 pip install openapi2jsonschema
 ```
+
+If the package fails to install or work on modern Python versions due to dependency/build issues (like `PyYAML`), try this workaround:
+```bash
+# Creates a new virtual environment named .venv in your current directory.
+# This isolates your Python packages from the system-wide ones, so dependencies don't conflict.
+$ python3 -m venv .venv
+
+# Activates the virtual environment .venv.
+# Your shell session now uses the Python and pip inside .venv, keeping your project dependencies separate.
+$ source .venv/bin/activate
+
+# Installs essential build tools inside the virtual environment.
+$ pip install "cython<3.0.0" wheel setuptools
+
+# Installs PyYAML version 5.4.1 specifically, because newer versions might cause build problems with this package.
+# The --no-build-isolation flag tells pip to not create a separate isolated environment for building, so it uses the current environment and its installed packages (like the pinned cython and setuptools), which helps avoid some build errors.
+$ pip install "pyyaml==5.4.1" --no-build-isolation
+
+# Installs the openapi2jsonschema package.
+$ pip install openapi2jsonschema
+
+# Verify if installed correctly and is runnable.
+$ openapi2jsonschema --help
+
+# Exits the virtual environment, returning your shell session to the normal system Python environment.
+$ deactivate
+```
+
+* Github Issue: [Fix installation on modern Python versions](https://github.com/instrumenta/openapi2jsonschema/issues/70)
 
 **Generating JSON Schemas**
 

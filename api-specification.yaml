@@ -345,9 +345,8 @@ paths:
     get:
       description:
       parameters:
-        - name: code
+        - name: id
           in: query
-          required: true
       responses:
         '200':
           $ref: '#/components/responses/OK'
