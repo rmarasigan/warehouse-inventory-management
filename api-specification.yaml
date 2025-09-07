@@ -34,6 +34,7 @@ paths:
     post:
       summary: New user account(s)
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -103,6 +104,7 @@ paths:
     post:
       summary: New role(s)
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -130,6 +132,7 @@ paths:
     put:
       summary: Update the role
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -160,6 +163,7 @@ paths:
     post:
       summary: New storage(s)
       requestBody:
+      required: true
         content:
           application/json:
             schema:
@@ -217,6 +221,7 @@ paths:
     post:
       summary: New unit of measurement(s)
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -274,6 +279,7 @@ paths:
     post:
       summary: New item(s)
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -284,7 +290,7 @@ paths:
           '400':
             $ref: '#/components/responses/BadRequest'
           '500':
-            $ref: '#/components/responses/InternalServerERror'
+            $ref: '#/components/responses/InternalServerError'
     delete:
       summary: Delete a specific item
       parameters:
@@ -352,22 +358,46 @@ paths:
           $ref: '#/components/responses/OK'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  
-  /transaction/inbound:
     post:
-      summary: A transaction is being processed and added to the warehouse
+      summary: A transaction is being processed for either an inbound or outbound type.
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/transaction'
-        responses:
-          '200':
-            description: Successfully created an inbound transaction
-          '400':
-            $ref: '#/components/responses/BadRequest'
-          '500':
-            $ref: '#/components/responses/InternalServerError'
+              $ref: '#/components/schemas/transanction'
+      responses:
+        '200':
+          description: Successfully created a transaction.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  /transaction/cancel:
+    put:
+      summary: Cancel a transaction.
+      description: >
+        Cancels the given transaction and reverses its stock movement.
+        - Inbound: Stock quantities will be reduced.
+        - Outbound: Stock quantities will be increased.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: The transaction ID to cancel.
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Transaction successfully cancelled.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+          description: Invalid request (e.g. transaction already cancelled)
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 # Reference: https://swagger.io/docs/specification/v3_0/components/#components-structure
 components:
@@ -381,7 +411,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#componentns/schemas/details'
+            $ref: '#components/schemas/details'
 
     InternalServerError:
       description: Internal Server Error
@@ -584,10 +614,10 @@ components:
             - out_of_stock
             - discontinued
           description: >
-            * in_stock: Item is available with sufficient quantity
-            * low_stock: Item's quantity is below a predefined threshold
-            * out_of_stock: Items are currently unavailable
-            * discontinued: Items that are no longer available
+            * in_stock: Item is available with sufficient quantity.
+            * low_stock: Item's quantity is below a predefined threshold.
+            * out_of_stock: Items are currently unavailable.
+            * discontinued: Items that are no longer available.
         storage_id:
           type: integer
           format: int32
@@ -606,6 +636,7 @@ components:
     transaction:
       type: object
       required:
+        - type
         - orderlines
         - created_by
       properties:
@@ -614,9 +645,13 @@ components:
           format: int32
         reference:
           type: string
-          description: A unique reference to the transaction made
+          description: A unique reference to the transaction made.
         orderlines:
           $ref: '#/components/schemas/orderlines'
+        amount:
+          type: number
+          format: double
+          minimum: 0
         type:
           type: string
           enum:
@@ -625,20 +660,11 @@ components:
           description: >
             * inbound: Items being added to the warehouse
             * outbound: Items being removed from the warehouse
-        status:
-          type: string
-          enum:
-            - processing
-            - received
-            - cancelled
-          description: >
-            * processing: A transaction is actively being handled and will be the default value for both inbound and outbound
-            * received: Marks the transaction as finalized
-              * For inbound: Items are successfully added to the warehouse
-              * For outbound: Items have successfully left the warehouse
-            * cancelled: Transactions that are stopped intentionally
         note:
           type: string
+          nullable: true
+        is_cancelled:
+          type: boolean
           nullable: true
         created_by:
           type: integer
@@ -683,22 +709,28 @@ components:
           type: integer
           format: int32
           minimum: 1
+        unit_price:
+          type: number
+          format: double
+        total_amount:
+          type: number
+          format: double
         note:
           type: string
           nullable: true
-          description: Additional information or details
+          description: Additional information or details.
         is_voided:
           type: boolean
           nullable: true
         created_by:
           type: integer
           format: int32
-          description: Unique ID of the user who created the transaction
+          description: Unique ID of the user who created the transaction.
         updated_by:
           type: integer
           format: int32
           nullable: true
-          description: Unique ID of the user who updated the transaction
+          description: Unique ID of the user who updated the transaction.
         date_created:
           type: string
           format: date-time
