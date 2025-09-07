@@ -21,7 +21,7 @@ func GetRoleByName(name string) (schema.Role, error) {
 //
 // Parameter:
 //   - role: The role information that will be inserted.
-func NewRole(role schema.Role) error {
+func NewRole(role schema.Role) (int64, error) {
 	return InsertRecord(RoleTable, role, "name")
 }
 

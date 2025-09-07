@@ -13,7 +13,7 @@ type User struct {
 	Email        sql.NullString `db:"email"`
 	Password     string         `db:"password"`
 	LastLogin    sql.NullString `db:"last_login"`
-	Active       bool           `db:"active"`
+	Active       bool           `db:"is_active"`
 	DateCreated  time.Time      `db:"date_created"`
 	DateModified sql.NullTime   `db:"date_modified"`
 }

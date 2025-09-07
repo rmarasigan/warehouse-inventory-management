@@ -1,13 +1,11 @@
 package v1
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -15,6 +13,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/mysql"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
+	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
 )
 
@@ -45,11 +44,11 @@ func getItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := convert.Schema(list, func(item schema.Item) apischema.Item {
+	items := convert.SchemaList(list, func(item schema.Item) apischema.Item {
 		return apischema.Item{
 			ID:           item.ID,
 			Name:         item.Name,
-			Description:  item.Description.String,
+			Description:  dbutils.GetString(item.Description),
 			Quantity:     item.Quantity,
 			UnitPrice:    item.UnitPrice,
 			UoMID:        item.UoMID,
@@ -57,7 +56,7 @@ func getItems(w http.ResponseWriter, r *http.Request) {
 			StorageID:    item.StorageID,
 			CreatedBy:    item.CreatedBy,
 			DateCreated:  item.DateCreated,
-			DateModified: item.DateModified.Time,
+			DateModified: dbutils.GetTime(item.DateModified),
 		}
 	})
 
@@ -101,17 +100,16 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := convert.Schema(data, func(item apischema.Item) schema.Item {
+	items := convert.SchemaList(data, func(item apischema.Item) schema.Item {
 		return schema.Item{
 			Name:        item.Name,
-			Description: sql.NullString{Valid: true, String: item.Description},
+			Description: dbutils.SetString(item.Description),
 			Quantity:    item.Quantity,
 			UnitPrice:   item.UnitPrice,
 			UoMID:       item.UoMID,
 			StockStatus: item.StockStatus,
 			StorageID:   item.StorageID,
 			CreatedBy:   item.CreatedBy,
-			DateCreated: time.Now().UTC(),
 		}
 	})
 
@@ -125,7 +123,7 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !existing {
-			err = mysql.NewItem(item)
+			_, err = mysql.NewItem(item)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("item", item), slog.Any("request", items))
 				response.InternalServer(w, response.Response{Error: "failed to create new item", Details: item})
@@ -167,16 +165,15 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items := convert.Schema(data, func(item apischema.Item) schema.Item {
+	items := convert.SchemaList(data, func(item apischema.Item) schema.Item {
 		return schema.Item{
-			ID:           item.ID,
-			Name:         item.Name,
-			Description:  sql.NullString{Valid: true, String: item.Description},
-			Quantity:     item.Quantity,
-			UnitPrice:    item.UnitPrice,
-			StorageID:    item.StorageID,
-			UoMID:        item.UoMID,
-			DateModified: sql.NullTime{Valid: true, Time: time.Now().UTC()},
+			ID:          item.ID,
+			Name:        item.Name,
+			Description: dbutils.SetString(item.Description),
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			StorageID:   item.StorageID,
+			UoMID:       item.UoMID,
 		}
 	})
 

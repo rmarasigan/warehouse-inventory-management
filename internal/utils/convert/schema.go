@@ -1,6 +1,10 @@
 package convert
 
-func Schema[T any, U any](source []T, fn func(T) U) []U {
+func Schema[T any, U any](source T, fn func(T) U) U {
+	return fn(source)
+}
+
+func SchemaList[T any, U any](source []T, fn func(T) U) []U {
 	var destination []U
 
 	for _, item := range source {

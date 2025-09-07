@@ -34,7 +34,7 @@ func getCurrencies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currencies := convert.Schema(list, func(currency schema.Currency) apischema.Currency {
+	currencies := convert.SchemaList(list, func(currency schema.Currency) apischema.Currency {
 		return apischema.Currency{
 			ID:     currency.ID,
 			Code:   currency.Code,

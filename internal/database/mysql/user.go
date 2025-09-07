@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 )
@@ -27,7 +26,7 @@ func GetUserByName(firstName, lastName string) (schema.User, error) {
 //
 // Parameter:
 //   - user: The user information that will be inserted.
-func NewUser(user schema.User) error {
+func NewUser(user schema.User) (int64, error) {
 	return InsertRecord(
 		UserTable,
 		user,
@@ -36,8 +35,7 @@ func NewUser(user schema.User) error {
 		"last_name",
 		"email",
 		"password",
-		"active",
-		"date_created",
+		"is_active",
 	)
 }
 
@@ -55,24 +53,23 @@ func UpdateUser(user schema.User) error {
 		"last_name",
 		"email",
 		"password",
-		"date_modified",
 	)
 }
 
 func ActivateUser(id int) error {
-	query := fmt.Sprintf("UPDATE %s SET active = true, date_modified = ? WHERE id = ?", UserTable)
-	_, err := Exec(query, time.Now().UTC(), id)
+	query := fmt.Sprintf("UPDATE %s SET is_active = true WHERE id = ?", UserTable)
+	_, err := Exec(query, id)
 
 	return err
 }
 
-// DeleteUser updates the existing user 'active' field as 'false' in the user table.
+// DeleteUser updates the existing user 'is_active' field as 'false' in the user table.
 //
 // Parameter:
 //   - id: The unique user id that will be deactivated.
 func DeleteUser(id int) error {
-	query := fmt.Sprintf("UPDATE %s SET active = false, date_modified = ? WHERE id = ?", UserTable)
-	_, err := Exec(query, time.Now().UTC(), id)
+	query := fmt.Sprintf("UPDATE %s SET is_active = false WHERE id = ?", UserTable)
+	_, err := Exec(query, id)
 
 	return err
 }

@@ -46,7 +46,7 @@ func getRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := convert.Schema(list, func(role schema.Role) apischema.Role {
+	roles := convert.SchemaList(list, func(role schema.Role) apischema.Role {
 		return apischema.Role{
 			ID:   role.ID,
 			Name: role.Name,
@@ -98,7 +98,7 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := convert.Schema(data, func(role apischema.Role) schema.Role {
+	roles := convert.SchemaList(data, func(role apischema.Role) schema.Role {
 		return schema.Role{
 			Name: role.Name,
 		}
@@ -114,7 +114,7 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !existing {
-			err = mysql.NewRole(role)
+			_, err = mysql.NewRole(role)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles))
 				response.InternalServer(w, response.Response{Error: "failed to create new role", Details: role})
@@ -146,7 +146,7 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 	}
 
-	var roles = convert.Schema(data, func(role apischema.Role) schema.Role {
+	var roles = convert.SchemaList(data, func(role apischema.Role) schema.Role {
 		return schema.Role{
 			ID:   role.ID,
 			Name: role.Name,

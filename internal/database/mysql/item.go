@@ -12,7 +12,7 @@ func GetItemByName(name string) (schema.Item, error) {
 	return RetrieveItemByField[schema.Item](ItemTable, "name", name, "LOWER(?)")
 }
 
-func NewItem(item schema.Item) error {
+func NewItem(item schema.Item) (int64, error) {
 	fields := []string{
 		"name",
 		"description",
@@ -22,7 +22,6 @@ func NewItem(item schema.Item) error {
 		"stock_status",
 		"storage_id",
 		"created_by",
-		"date_created",
 	}
 
 	return InsertRecord(ItemTable, item, fields...)
@@ -37,7 +36,6 @@ func UpdateItem(item schema.Item) error {
 		"unit_price",
 		"storage_id",
 		"uom_id",
-		"date_modified",
 	}
 
 	return UpdateRecordByID(ItemTable, item, fields...)

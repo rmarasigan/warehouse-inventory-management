@@ -23,6 +23,28 @@ func FetchItems[T any](table string) ([]T, error) {
 	return fetch[T](query)
 }
 
+func FetchItemsByFields[T any](table string, conditions map[string]any, args ...any) ([]T, error) {
+	var whereClauses []string
+
+	// Build the WHERE clause dynamically
+	for field, transformation := range conditions {
+		if transformation == "" {
+			// Default to no transformation
+			transformation = "?"
+		}
+
+		whereClauses = append(whereClauses, fmt.Sprintf("%s = %s", field, transformation))
+	}
+
+	query := fmt.Sprintf(
+		"SELECT * FROM %s WHERE %s;",
+		table,
+		strings.Join(whereClauses, " AND "),
+	)
+
+	return fetch[T](query, args...)
+}
+
 // RetrieveItemByField is a generic function to retrieve single record from a database by a single field
 // with an optional transformation. If no transformation is provided, the default is no transformation ("?").
 //
@@ -88,9 +110,9 @@ func RetrieveItemByFields[T any](table string, conditions map[string]any, args .
 //	}
 //
 //	err := InsertRecord(TableName, record, "name", "email")
-func InsertRecord(table string, record any, fields ...string) error {
+func InsertRecord(table string, record any, fields ...string) (int64, error) {
 	if len(fields) == 0 {
-		return fmt.Errorf("must specify at least one field to perform insert operation")
+		return 0, fmt.Errorf("must specify at least one field to perform insert operation")
 	}
 
 	var values []string
@@ -108,13 +130,13 @@ func InsertRecord(table string, record any, fields ...string) error {
 		strings.Join(values, ", "),
 	)
 
-	_, err := database.NamedExec(query, record)
+	result, err := database.NamedExec(query, record)
 	if err != nil {
 		trail.Error("[insert] %s: %s", err.Error(), query)
-		return err
+		return 0, err
 	}
 
-	return nil
+	return result.LastInsertId()
 }
 
 // UpdateRecordByID updates a specific record in the given table by its ID. The fields are
@@ -183,6 +205,6 @@ func DeleteRecordByID(table string, id int) (int64, error) {
 //	}
 //
 //	affected, err := result.RowsAffected()
-func Exec(query string, args ...interface{}) (sql.Result, error) {
+func Exec(query string, args ...any) (sql.Result, error) {
 	return database.ExecContext(context.Background(), query, args...)
 }

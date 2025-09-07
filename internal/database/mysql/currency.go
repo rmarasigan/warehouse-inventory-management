@@ -14,7 +14,7 @@ func GetCurrency(id int) (schema.Currency, error) {
 
 // GetActiveCurrency returns the active currency.
 func GetActiveCurrency() (schema.Currency, error) {
-	return RetrieveItemByField[schema.Currency](CurrencyTable, "active", true)
+	return RetrieveItemByField[schema.Currency](CurrencyTable, "is_active", true)
 }
 
 // ActivateCurrency activate a currency by code.
@@ -24,13 +24,13 @@ func ActivateCurrency(code string) error {
 		return err
 	}
 
-	const disableQuery = "UPDATE currency SET active = false WHERE id = ?;"
+	const disableQuery = "UPDATE currency SET is_active = false WHERE id = ?;"
 	_, err = Exec(disableQuery, active.ID)
 	if err != nil {
 		return err
 	}
 
-	const enableQuery = "UPDATE currency SET active = true WHERE code = ?;"
+	const enableQuery = "UPDATE currency SET is_active = true WHERE code = ?;"
 	_, err = Exec(enableQuery, code)
 	if err != nil {
 		return err

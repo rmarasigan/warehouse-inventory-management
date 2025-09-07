@@ -12,7 +12,7 @@ func GetStorageByName(name string) (schema.Storage, error) {
 	return RetrieveItemByField[schema.Storage](StorageTable, "name", name, "LOWER(?)")
 }
 
-func NewStorage(storage schema.Storage) error {
+func NewStorage(storage schema.Storage) (int64, error) {
 	return InsertRecord(StorageTable, storage, "code", "name", "description")
 }
 

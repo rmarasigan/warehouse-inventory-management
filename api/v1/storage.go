@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,6 +13,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/mysql"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
+	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
 )
 
@@ -44,12 +44,12 @@ func getStorages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storages := convert.Schema(list, func(storage schema.Storage) apischema.Storage {
+	storages := convert.SchemaList(list, func(storage schema.Storage) apischema.Storage {
 		return apischema.Storage{
 			ID:          storage.ID,
 			Code:        storage.Code,
 			Name:        storage.Name,
-			Description: storage.Description.String,
+			Description: dbutils.GetString(storage.Description),
 		}
 	})
 
@@ -86,12 +86,12 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storages := convert.Schema(data, func(storage apischema.Storage) schema.Storage {
+	storages := convert.SchemaList(data, func(storage apischema.Storage) schema.Storage {
 		return schema.Storage{
 			ID:          storage.ID,
 			Code:        storage.Code,
 			Name:        storage.Name,
-			Description: sql.NullString{String: storage.Description, Valid: true},
+			Description: dbutils.SetString(storage.Description),
 		}
 	})
 
@@ -105,7 +105,7 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !existing {
-			err = mysql.NewStorage(storage)
+			_, err = mysql.NewStorage(storage)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("storage", storage), slog.Any("request", storages))
 				response.InternalServer(w, response.Response{Error: "failed to create a new storage", Details: storage})
@@ -140,12 +140,12 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storages := convert.Schema(data, func(storage apischema.Storage) schema.Storage {
+	storages := convert.SchemaList(data, func(storage apischema.Storage) schema.Storage {
 		return schema.Storage{
 			ID:          storage.ID,
 			Code:        storage.Code,
 			Name:        storage.Name,
-			Description: sql.NullString{String: storage.Description, Valid: true},
+			Description: dbutils.SetString(storage.Description),
 		}
 	})
 

@@ -43,7 +43,7 @@ func getUOMs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uoms := convert.Schema(list, func(uom schema.UOM) apischema.UOM {
+	uoms := convert.SchemaList(list, func(uom schema.UOM) apischema.UOM {
 		return apischema.UOM{
 			ID:   uom.ID,
 			Code: uom.Code,
@@ -91,7 +91,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uoms := convert.Schema(data, func(uom apischema.UOM) schema.UOM {
+	uoms := convert.SchemaList(data, func(uom apischema.UOM) schema.UOM {
 		return schema.UOM{
 			ID:   uom.ID,
 			Code: uom.Code,
@@ -109,7 +109,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !existing {
-			err = mysql.NewUOM(uom)
+			_, err = mysql.NewUOM(uom)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("uom", uom), slog.Any("request", uoms))
 				response.InternalServer(w, response.Response{Error: "failed to create new uom", Details: uom})
@@ -144,7 +144,7 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uoms := convert.Schema(data, func(uom apischema.UOM) schema.UOM {
+	uoms := convert.SchemaList(data, func(uom apischema.UOM) schema.UOM {
 		return schema.UOM{
 			ID:   uom.ID,
 			Code: uom.Code,

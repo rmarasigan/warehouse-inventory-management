@@ -1,13 +1,11 @@
 package v1
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -15,6 +13,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/mysql"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
+	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
 )
 
@@ -51,17 +50,17 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 		response.InternalServer(w, nil)
 	}
 
-	users := convert.Schema(list, func(user schema.User) apischema.User {
+	users := convert.SchemaList(list, func(user schema.User) apischema.User {
 		return apischema.User{
 			ID:           user.ID,
 			RoleID:       user.RoleID,
 			FirstName:    user.FirstName,
 			LastName:     user.LastName,
-			Email:        user.Email.String,
-			LastLogin:    user.LastLogin.String,
+			Email:        dbutils.GetString(user.Email),
+			LastLogin:    dbutils.GetString(user.LastLogin),
 			Active:       user.Active,
 			DateCreated:  user.DateCreated,
-			DateModified: user.DateModified.Time,
+			DateModified: dbutils.GetTime(user.DateModified),
 		}
 	})
 
@@ -110,15 +109,14 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users := convert.Schema(data, func(user apischema.User) schema.User {
+	users := convert.SchemaList(data, func(user apischema.User) schema.User {
 		return schema.User{
-			RoleID:      user.RoleID,
-			FirstName:   user.FirstName,
-			LastName:    user.LastName,
-			Email:       sql.NullString{String: user.Email, Valid: true}, // Valid is 'true' if String is not NULL
-			Password:    user.Password,
-			Active:      true,
-			DateCreated: time.Now().UTC(),
+			RoleID:    user.RoleID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     dbutils.SetString(user.Email),
+			Password:  user.Password,
+			Active:    true,
 		}
 	})
 
@@ -132,7 +130,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !existing {
-			err = mysql.NewUser(user)
+			_, err = mysql.NewUser(user)
 			if err != nil {
 				log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users))
 				response.InternalServer(w, response.Response{Error: "failed create new user account", Details: user})
@@ -170,15 +168,14 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users := convert.Schema(data, func(user apischema.User) schema.User {
+	users := convert.SchemaList(data, func(user apischema.User) schema.User {
 		return schema.User{
-			ID:           user.ID,
-			RoleID:       user.RoleID,
-			FirstName:    user.FirstName,
-			LastName:     user.LastName,
-			Email:        sql.NullString{String: user.Email, Valid: true},
-			Password:     user.Password,
-			DateModified: sql.NullTime{Time: time.Now().UTC(), Valid: true},
+			ID:        user.ID,
+			RoleID:    user.RoleID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     dbutils.SetString(user.Email),
+			Password:  user.Password,
 		}
 	})
 
