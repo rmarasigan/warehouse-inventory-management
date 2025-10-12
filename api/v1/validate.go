@@ -17,8 +17,9 @@ const (
 	currencies         string = "currencies"
 	activateCurrency   string = currencies + "/activate"
 	items              string = "items"
-	transaction        string = "transaction"
-	transactionInbound string = transaction + "/inbound"
+	transaction        string = "transactions"
+	transactionAddNote string = transaction + "/add-note"
+	transactionCancel  string = transaction + "/cancel"
 )
 
 func IsValidPathMethod(method, segment string) bool {
@@ -31,8 +32,9 @@ func IsValidPathMethod(method, segment string) bool {
 		currencies:         {http.MethodGet},
 		activateCurrency:   {http.MethodPut},
 		items:              {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		transaction:        {http.MethodGet},
-		transactionInbound: {http.MethodPost},
+		transaction:        {http.MethodGet, http.MethodPost},
+		transactionAddNote: {http.MethodPut},
+		transactionCancel:  {http.MethodPut},
 	}
 
 	methods, exist := valid[segment]

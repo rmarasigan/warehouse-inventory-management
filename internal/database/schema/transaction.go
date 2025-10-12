@@ -35,3 +35,7 @@ type (
 		DateModified  sql.NullTime    `db:"date_modified"`
 	}
 )
+
+func (t Transaction) IsValidTransactionType() bool {
+	return (t.Type == "inbound") || (t.Type == "outbound")
+}

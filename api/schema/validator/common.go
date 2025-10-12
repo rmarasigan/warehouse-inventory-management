@@ -41,7 +41,7 @@ func isValid(input []byte, source string) (bool, []string) {
 	}
 
 	for _, err := range result.Errors() {
-		errors = append(errors, err.Description())
+		errors = append(errors, err.Field()+": "+err.Description())
 	}
 
 	return false, errors
@@ -90,4 +90,22 @@ func ValidateUOM(input []byte) (bool, []string) {
 //   - []string: A list of error message if the validation fails.
 func ValidateItem(input []byte) (bool, []string) {
 	return isValid(input, basePath+"items.json")
+}
+
+// ValidateTransaction validates the input JSON against the transaction schema.
+//
+// Returns:
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
+func ValidateTransaction(input []byte) (bool, []string) {
+	return isValid(input, basePath+"transaction.json")
+}
+
+// ValidateNote validates the input JSON against the note schema.
+//
+// Returns:
+//   - bool: 'true' if the input is valid, 'false' otherwise.
+//   - []string: A list of error message if the validation fails.
+func ValidateNote(input []byte) (bool, []string) {
+	return isValid(input, basePath+"note.json")
 }

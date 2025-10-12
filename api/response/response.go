@@ -45,6 +45,10 @@ func Created(w http.ResponseWriter, data any) {
 	response(w, http.StatusCreated, data)
 }
 
+func MultiStatus(w http.ResponseWriter, data any) {
+	response(w, http.StatusMultiStatus, data)
+}
+
 func BadRequest(w http.ResponseWriter, data any) {
 	response(w, http.StatusBadRequest, data)
 }

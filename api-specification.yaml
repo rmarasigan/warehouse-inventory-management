@@ -164,10 +164,10 @@ paths:
       summary: New storage(s)
       requestBody:
       required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/storages'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/storages'
       responses:
         '200':
           description: Successfully created new storage(s)
@@ -310,7 +310,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schema/items'
+              $ref: '#/components/schemas/items'
       responses:
         '200':
           $ref: '#/components/responses/OK'
@@ -347,9 +347,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /transaction:
+  /transactions:
     get:
-      description:
+      description: Retrieve a specific transaction or all transactions.
       parameters:
         - name: id
           in: query
@@ -365,7 +365,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/transanction'
+              $ref: '#/components/schemas/transaction'
       responses:
         '200':
           description: Successfully created a transaction.
@@ -373,7 +373,43 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    put:
+      summary: A transaction that is going to be updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/transaction'
+        responses:
+        '200':
+          description: Successfully created a transaction.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   
+  /transaction/add-note:
+  put:
+    summary: Add a transaction note.
+    parameters:
+      - name: id
+        in: query
+        required: true
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/note'
+    responses:
+      '200':
+        description: Successfully updated the note.
+      '400':
+        $ref: '#/components/responses/BadRequest'
+      '500':
+        $ref: '#/components/responses/InternalServerError'
+
   /transaction/cancel:
     put:
       summary: Cancel a transaction.
@@ -388,6 +424,12 @@ paths:
           schema:
             type: integer
           description: The transaction ID to cancel.
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: The user ID.
       requestBody:
         required: false
       responses:
@@ -411,7 +453,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#components/schemas/details'
+            $ref: '#/components/schemas/details'
 
     InternalServerError:
       description: Internal Server Error
@@ -738,6 +780,16 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    note:
+      type: object
+      required:
+        - note
+      properties:
+        note:
+          type: string
+          maxLength: 255
+          example: "Customer requested urgent delivery."
 
     details:
       type: object

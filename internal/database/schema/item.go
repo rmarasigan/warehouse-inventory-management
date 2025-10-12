@@ -18,3 +18,23 @@ type Item struct {
 	DateCreated  time.Time      `db:"date_created"`
 	DateModified sql.NullTime   `db:"date_modified"`
 }
+
+func (i *Item) UpdateQuantity(transactionType string, quantity int) {
+	if transactionType == "inbound" {
+		i.Quantity += quantity
+	}
+
+	if transactionType == "outbound" {
+		i.Quantity -= quantity
+	}
+}
+
+func (i *Item) UpdateCancelledQuantity(transactionType string, quantity int) {
+	if transactionType == "inbound" {
+		i.Quantity -= quantity
+	}
+
+	if transactionType == "outbound" {
+		i.Quantity += quantity
+	}
+}
