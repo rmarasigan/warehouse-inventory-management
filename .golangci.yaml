@@ -8,11 +8,10 @@ run:
   # Go command is disallowed from the implicit automatic updating of go.mod.
   modules-download-mode: readonly
 
-# Reference: https://golangci-lint.run/usage/linters/
+# Reference: https://golangci-lint.run/docs/linters/configuration/
 linters:
-  # Disable all the linters.
-  disable-all: true
-  enable:
+  default: none    # Disable all the linters.
+  enable:          # Enable specific linter.
     - bodyclose    # Checks whether HTTP response body is closed successfully.
     - dogsled      # Checks assignments with too many blank identifiers.
     - dupl         # Checks for duplicate code.
@@ -20,11 +19,9 @@ linters:
     - errorlint    # Used to find code that will cause problems with the error wrapping scheme.
     - gocritic     # Provides diagnostics that check for bugs, performance and style issues.
     - godot        # Checks if comments end in a period.
-    - gosimple     # Specializes in simplifying code.
     - govet        # Examines Go source code and reports suspicious constructs.
     - ineffassign  # Detects when assignments to existing variables are not used.
     - misspell     # Finds commonly misspelled English words.
     - sloglint     # Ensure consistent code style when using log/slog.
     - staticcheck  # Set of rules from staticcheck.
-    - stylecheck   # A replacement for golint.
     - unused       # Checks for unused constants, variables, functions, and types.
