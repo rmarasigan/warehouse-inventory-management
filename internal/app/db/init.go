@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/app/config"
@@ -45,7 +46,12 @@ func Initialize() {
 		trail.Warn("failed to create connection to database")
 		panic(err)
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Error("failed to close database connection", slog.Any("error", err.Error()))
+		}
+	}()
 
 	// Create the database if it doesn't exist.
 	err = database(ctx, db, cfg.DatabaseName())
