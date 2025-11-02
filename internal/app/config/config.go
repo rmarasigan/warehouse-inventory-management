@@ -33,9 +33,23 @@ type config struct {
 
 // Application holds the application-specific configuration details.
 type Application struct {
+	Name              string              `yaml:"name,omitempty"`
+	Host              string              `yaml:"host,omitempty"`
+	Port              string              `yaml:"port,omitempty"`
+	Role              []string            `yaml:"role,omitempty"`
+	Currency          []Currency          `yaml:"currency,omitempty"`
+	UnitOfMeasurement []UnitOfMeasurement `yaml:"unit_of_measurement,omitempty"`
+}
+
+type Currency struct {
+	Code   string `yaml:"code,omitempty"`
+	Symbol string `yaml:"symbol,omitempty"`
+	Active bool   `yaml:"active,omitempty"`
+}
+
+type UnitOfMeasurement struct {
+	Code string `yaml:"code,omitempty"`
 	Name string `yaml:"name,omitempty"`
-	Host string `yaml:"host,omitempty"`
-	Port string `yaml:"port,omitempty"`
 }
 
 // MySQL holds the MySQL database-specific configuration details.
@@ -159,4 +173,16 @@ func (cfg config) ServerAddress() string {
 	default:
 		return fmt.Sprintf("%s:%s", DefaultIP, DefaultPort)
 	}
+}
+
+func (cfg config) Role() []string {
+	return cfg.Application.Role
+}
+
+func (cfg config) Currency() []Currency {
+	return cfg.Application.Currency
+}
+
+func (cfg config) UnitOfMeasurement() []UnitOfMeasurement {
+	return cfg.Application.UnitOfMeasurement
 }
