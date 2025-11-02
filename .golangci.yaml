@@ -1,3 +1,6 @@
+# Defines the configuration version.
+version: "2"
+
 # Reference: https://golangci-lint.run/usage/configuration/
 run:
   # Indicates if to include test files or not.
