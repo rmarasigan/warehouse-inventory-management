@@ -25,8 +25,8 @@ func orderlineHandler(w http.ResponseWriter, r *http.Request) {
 
 func orderlineNote(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)

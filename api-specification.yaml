@@ -410,6 +410,27 @@ paths:
       '500':
         $ref: '#/components/responses/InternalServerError'
 
+  /transaction/orderline-note:
+  put:
+    summary: Add an orderline note.
+    parameters:
+      - name: id
+        in: query
+        required: true
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schema/note'
+    responses:
+      '200':
+        description: Successfully updated the orderline note.
+      '400':
+        $ref: '#/components/responses/BadRequest'
+      '500':
+        $ref: '#/components/responses/InternalServerError'
+
   /transaction/cancel:
     put:
       summary: Cancel a transaction.
@@ -785,11 +806,15 @@ components:
       type: object
       required:
         - note
+        - user_id
       properties:
         note:
           type: string
           maxLength: 255
           example: "Customer requested urgent delivery."
+        user_id:
+          type: integer
+          format: int32
 
     details:
       type: object
