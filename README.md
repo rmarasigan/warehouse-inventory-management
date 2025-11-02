@@ -8,11 +8,30 @@ A simple Warehouse Inventory Management System that is designed to help you mana
 
 ### Running the Application
 
+To perform the **initial setup** and get the environment running, build the binary and run it with the `--db=init` flag:
 ```bash
-dev@dev:~/warehouse-inventory-management$ go build; ./warehouse-inventory-management
-2024-08-08 2:59:39 PM | INFO    Establishing MySQL connection...
-2024-08-08 2:59:39 PM | OK      MySQL connection established.
-2024-08-08 2:59:39 PM | INFO    Initializing Warehouse Inventory Management Server at 0.0.0.0:8080
+dev@dev:~/warehouse-inventory-management$ go build
+dev@dev:~/warehouse-inventory-management$ ./warehouse-inventory-management --db=init
+```
+
+You should see output similar to the following:
+```bash
+2025-11-02 11:03:47 AM | INFO   Initializing database...
+2025-11-02 11:03:47 AM | OK     Successfully created inventory_management database...
+2025-11-02 11:03:47 AM | OK     Successfully created role table...
+2025-11-02 11:03:47 AM | OK     Successfully created users table...
+2025-11-02 11:03:47 AM | OK     Successfully created unit_of_measurement table...
+2025-11-02 11:03:47 AM | OK     Successfully created storage table...
+2025-11-02 11:03:47 AM | OK     Successfully created currency table...
+2025-11-02 11:03:47 AM | OK     Successfully created item table...
+2025-11-02 11:03:47 AM | OK     Successfully created transactions table...
+2025-11-02 11:03:47 AM | OK     Successfully created orderline table...
+2025-11-02 11:03:47 AM | OK     Successfully imported items to role table...
+2025-11-02 11:03:47 AM | OK     Successfully imported items to unit_of_measurement table...
+2025-11-02 11:03:47 AM | OK     Successfully imported items to currency table...
+2025-11-02 11:03:47 AM | INFO   Establishing MySQL connection...
+2025-11-02 11:03:47 AM | OK     MySQL connection established.
+2025-11-02 11:03:47 AM | INFO   Initializing Warehouse Inventory Management Server at 0.0.0.0:8080
                   ______   _____
    ___  ___  ___ /  /    \/     \
   /  / /  / /  //  /  __   __   /
@@ -20,6 +39,34 @@ dev@dev:~/warehouse-inventory-management$ go build; ./warehouse-inventory-manage
 /  /_/  /_/  //  /  / /  / /  /
 \_____,_____//__/__/ /__/ /__/
 ```
+
+Once the database and tables are initialized, you can start the server normally without the `--db=init` flag:
+```bash
+dev@dev:~/warehouse-inventory-management$ go build
+dev@dev:~/warehouse-inventory-management$ ./warehouse-inventory-management
+```
+
+This will:
+* Connect to the existing database.
+* Load cached configurations.
+* Start the HTTP server on port 8080.
+
+Expected output:
+```bash
+2025-11-02 12:49:16 PM | INFO   Establishing MySQL connection...
+2025-11-02 12:49:16 PM | OK     MySQL connection established.
+2025-11-02 12:49:16 PM | INFO   Initializing Warehouse Inventory Management Server at 0.0.0.0:8080
+                  ______   _____
+   ___  ___  ___ /  /    \/     \
+  /  / /  / /  //  /  __   __   /
+ /  / /  / /  //  /  / /  / /  /
+/  /_/  /_/  //  /  / /  / /  /
+\_____,_____//__/__/ /__/ /__/
+```
+
+> [!TIP]
+>
+> If you ever need to reset the database schema (e.g., for local testing), re-run the command with the `--db=init` flag: `./warehouse-inventory-management --db=init`
 
 ## Requirements
 * **Go**: v1.24

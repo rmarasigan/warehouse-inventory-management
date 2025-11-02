@@ -2,6 +2,67 @@ application:
   name: Warehouse Inventory Management
   host: 0.0.0.0
   port: 8080
+  role: ["admin", "developer"]
+  currency:
+    - code: PHP
+      symbol: ₱
+      active: true
+    - code: USD
+      symbol: $
+      active: false
+    - code: EUR
+      symbol: €
+      active: false
+    - code: KPW
+      symbol: ₩
+      active: false
+    - code: JPY
+      symbol: ¥
+      active: false
+    - code: SEK
+      symbol: kr
+      active: false
+  unit_of_measurement:
+    - code: BAG
+      name: Bag
+    - code: BKT
+      name: Bucket
+    - code: BX
+      name: Box
+    - code: CRD
+      name: Card
+    - code: CM
+      name: Centimeters
+    - code: CS
+      name: Case
+    - code: DZ
+      name: Dozen
+    - code: EA
+      name: Each
+    - code: FT
+      name: Foot
+    - code: GAL
+      name: Gallon
+    - code: IN
+      name: Inches
+    - code: M
+      name: Meter
+    - code: MM
+      name: Millimeter
+    - code: PC
+      name: Piece
+    - code: PK
+      name: Pack
+    - code: PR
+      name: Pair
+    - code: RL
+      name: Roll
+    - code: SET
+      name: Set
+    - code: SHT
+      name: Sheet
+    - code: YD
+      name: Yard
 
 mysql:
   host: 127.0.0.1
