@@ -63,8 +63,8 @@ func getRoles(w http.ResponseWriter, r *http.Request) {
 // status response.
 func createRole(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)
@@ -131,14 +131,16 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 // unmarshals the request body into a role object and updates the corresponding
 // fields. If an error occurs, it responds with an HTTP Internal Server Error status.
 func updateRole(w http.ResponseWriter, r *http.Request) {
-	defer log.Panic()
+	defer func() {
+		_ = r.Body.Close()
+		log.Panic()
+	}()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error(err.Error(), slog.Any("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 	}
-	defer r.Body.Close()
 
 	data, err := apischema.NewRole(body)
 	if err != nil {

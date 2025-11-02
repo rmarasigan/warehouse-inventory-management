@@ -58,8 +58,8 @@ func getStorages(w http.ResponseWriter, r *http.Request) {
 
 func createStorage(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)
@@ -120,8 +120,8 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 
 func updateStorage(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)

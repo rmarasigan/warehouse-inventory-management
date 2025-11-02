@@ -56,8 +56,8 @@ func getUOMs(w http.ResponseWriter, r *http.Request) {
 
 func createUOM(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)
@@ -124,8 +124,8 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 
 func updateUOM(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)

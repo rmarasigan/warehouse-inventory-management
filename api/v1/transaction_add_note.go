@@ -25,8 +25,8 @@ func transactionAddNoteHandler(w http.ResponseWriter, r *http.Request) {
 
 func transactionNote(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)

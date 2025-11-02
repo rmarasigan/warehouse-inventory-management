@@ -74,8 +74,8 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 // HTTP status response.
 func createUser(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)
@@ -148,8 +148,8 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 // fields. If an error occurs, it responds with an HTTP Internal Server Error status.
 func updateUser(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)

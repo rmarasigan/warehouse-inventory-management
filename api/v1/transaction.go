@@ -72,8 +72,8 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 
 func createTransaction(w http.ResponseWriter, r *http.Request) {
 	defer func() {
+		_ = r.Body.Close()
 		log.Panic()
-		r.Body.Close()
 	}()
 
 	body, err := io.ReadAll(r.Body)
