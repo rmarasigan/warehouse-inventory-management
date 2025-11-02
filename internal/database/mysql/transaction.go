@@ -75,5 +75,5 @@ func CancelTransaction(transaction schema.Transaction) error {
 }
 
 func AddTransactionNote(transaction schema.Transaction) error {
-	return UpdateRecordByID(TransactionTable, transaction, "note")
+	return UpdateRecordByID(TransactionTable, transaction, "note", "updated_by")
 }

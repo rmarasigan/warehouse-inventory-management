@@ -26,6 +26,7 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 		currencies:         currencyHandler,
 		activateCurrency:   currencyHandler,
 		items:              itemHandler,
+		orderlineAddNote:   orderlineHandler,
 		transaction:        transactionHandler,
 		transactionAddNote: transactionAddNoteHandler,
 		transactionCancel:  transactionCancelHandler,

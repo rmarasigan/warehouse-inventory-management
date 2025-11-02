@@ -3,7 +3,8 @@ package apischema
 import "encoding/json"
 
 type Shared struct {
-	Note string `json:"note"`
+	UserID int32  `json:"user_id"`
+	Note   string `json:"note"`
 }
 
 func unmarshal[T any](data []byte) ([]T, error) {

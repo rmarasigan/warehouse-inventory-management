@@ -19,6 +19,7 @@ const (
 	items              string = "items"
 	transaction        string = "transactions"
 	transactionAddNote string = transaction + "/add-note"
+	orderlineAddNote   string = transaction + "/orderline-note"
 	transactionCancel  string = transaction + "/cancel"
 )
 
@@ -34,6 +35,7 @@ func IsValidPathMethod(method, segment string) bool {
 		items:              {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 		transaction:        {http.MethodGet, http.MethodPost},
 		transactionAddNote: {http.MethodPut},
+		orderlineAddNote:   {http.MethodPut},
 		transactionCancel:  {http.MethodPut},
 	}
 
