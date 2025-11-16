@@ -1,11 +1,10 @@
 package v1
 
 import (
-	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -14,7 +13,6 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/mysql"
 	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
-	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func transactionAddNoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,55 +29,66 @@ func transactionNote(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
 	if len(body) == 0 {
-		log.Error("missing request body", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
-	idParam, ok := requestutils.HasQueryParam(r, "id")
-	if !ok {
-		err := "missing 'id' from request query"
-		log.Error(err, slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: err})
-
-		return
-	}
-
-	id, err := strconv.Atoi(idParam)
+	id, err := parameterID(r)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "the 'id' is invalid; must be an integer"})
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
-	ok, errors := validator.ValidateNote(body)
+	ok, validationErrors := validator.ValidateNote(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
+	}
+
+	shared, err := apischema.NewNote(body)
+	if err != nil {
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 	}
 
 	transaction, err := mysql.GetTransactionByID(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to fetch transaction " + idParam})
-		return
-	}
-
-	var shared apischema.Shared
-	err = json.Unmarshal(body, &shared)
-	if err != nil {
-		log.Error("failed to unmarshal request", slog.Any("error", err.Error()), slog.Int("id", id), slog.Any("note", shared.Note), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request"})
+		log.Error(err, "failed to retrieve transaction",
+			log.KVs(map[string]any{
+				"id":      id,
+				"path":    r.URL.Path,
+				"request": string(body),
+			}),
+		)
+		response.InternalServer(w,
+			response.Response{
+				Error:   err.Error(),
+				Details: "failed to fetch transaction " + fmt.Sprint(id),
+			},
+		)
 		return
 	}
 
@@ -87,16 +96,22 @@ func transactionNote(w http.ResponseWriter, r *http.Request) {
 
 	err = mysql.AddTransactionNote(transaction)
 	if err != nil {
-		log.Error("failed to add transaction note", slog.Any("error", err.Error()), slog.Int("id", id), slog.Any("note", shared.Note), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to add transaction note",
+			log.KVs(map[string]any{
+				"id":      id,
+				"path":    r.URL.Path,
+				"request": string(body),
+			}),
+		)
 		response.InternalServer(w,
 			response.Response{
-				Error: "failed to add transaction note",
+				Error: err.Error(),
 				Details: map[string]any{
+					"transaction_id": id,
 					"note":           shared.Note,
-					"transaction_id": transaction.ID,
+					"message":        "failed to add transaction note",
 				},
-			},
-		)
+			})
 
 		return
 	}

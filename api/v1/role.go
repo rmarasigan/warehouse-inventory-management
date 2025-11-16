@@ -1,9 +1,9 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -40,7 +40,7 @@ func getRoles(w http.ResponseWriter, r *http.Request) {
 
 	list, err := getList(r, mysql.GetRoleByID, mysql.ListRole)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err, "failed to retrieve roles", log.KV("path", r.URL.Path))
 		response.InternalServer(w, nil)
 
 		return
@@ -69,30 +69,42 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
 	if len(body) == 0 {
-		log.Error("missing request body", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
-	ok, errors := validator.ValidateRole(body)
+	ok, validationErrors := validator.ValidateRole(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
 	}
 
 	data, err := apischema.NewRole(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -107,8 +119,21 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	for _, role := range roles {
 		existing, err := mysql.RoleNameExists(role.Name)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if role name exists", Details: role})
+			log.Error(err, "failed to validate if role name exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"role":    role,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"role":    role,
+						"message": "failed to validate if role name exists",
+					},
+				})
 
 			break
 		}
@@ -116,8 +141,22 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		if !existing {
 			_, err = mysql.NewRole(role)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles))
-				response.InternalServer(w, response.Response{Error: "failed to create new role", Details: role})
+				log.Error(err, "failed to create role",
+					log.KVs(map[string]any{
+						"role": role,
+						"path": r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"role":    role,
+							"message": "failed to create role",
+						},
+					},
+				)
 
 				break
 			}
@@ -138,14 +177,23 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+
+		return
 	}
 
 	data, err := apischema.NewRole(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+
+		return
 	}
 
 	var roles = convert.SchemaList(data, func(role apischema.Role) schema.Role {
@@ -160,8 +208,21 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 
 		existing, err := mysql.RoleIDExists(roleID)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("role", role), slog.Any("request", roles), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if role id exists", Details: role})
+			log.Error(err, "failed to validate if role id exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"role":    role,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"role":    role,
+						"message": "failed to validate if role id exists",
+					},
+				})
 
 			return
 		}
@@ -169,8 +230,23 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 		if existing {
 			err = mysql.UpdateRole(role)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("id", roleID), slog.Any("path", r.URL.Path))
-				response.InternalServer(w, response.Response{Error: "failed to update role"})
+				log.Error(err, "failed to update role",
+					log.KVs(map[string]any{
+						"request": data,
+						"role":    role,
+						"path":    r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"role":    role,
+							"message": "failed to update role",
+						},
+					},
+				)
 
 				return
 			}
@@ -193,8 +269,13 @@ func deleteRole(w http.ResponseWriter, r *http.Request) {
 
 	affected, err := mysql.DeleteRole(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to delete role"})
+		log.Error(err, "failed to delete role",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete role"})
 
 		return
 	}

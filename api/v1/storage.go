@@ -1,9 +1,9 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -38,7 +38,7 @@ func getStorages(w http.ResponseWriter, r *http.Request) {
 
 	list, err := getList(r, mysql.GetStorageByID, mysql.ListStorage)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err, "failed to retrieve storages", log.KV("path", r.URL.Path))
 		response.InternalServer(w, nil)
 
 		return
@@ -64,23 +64,42 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
-	ok, errors := validator.ValidateStorage(body)
+	if len(body) == 0 {
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
+
+		return
+	}
+
+	ok, validationErrors := validator.ValidateStorage(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
 	}
 
 	data, err := apischema.NewStorage(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -98,8 +117,21 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 	for _, storage := range storages {
 		existing, err := mysql.StorageNameExists(storage.Name)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("storage", storage), slog.Any("request", storages), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if storage name exists", Details: storage})
+			log.Error(err, "failed to validate if storage name exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"storage": storage,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"storage": storage,
+						"message": "failed to validate if storage name exists",
+					},
+				})
 
 			return
 		}
@@ -107,8 +139,22 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 		if !existing {
 			_, err = mysql.NewStorage(storage)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("storage", storage), slog.Any("request", storages))
-				response.InternalServer(w, response.Response{Error: "failed to create a new storage", Details: storage})
+				log.Error(err, "failed to create storage",
+					log.KVs(map[string]any{
+						"storage": storage,
+						"path":    r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"storage": storage,
+							"message": "failed to create storage",
+						},
+					},
+				)
 
 				return
 			}
@@ -126,7 +172,7 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
@@ -134,7 +180,12 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 
 	data, err := apischema.NewStorage(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("any", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -154,8 +205,21 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 
 		existing, err := mysql.StorageIDExists(storageID)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("id", storageID), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if storage id exists"})
+			log.Error(err, "failed to validate if storage id exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"storage": storage,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"storage": storage,
+						"message": "failed to validate if storage id exists",
+					},
+				})
 
 			return
 		}
@@ -163,8 +227,23 @@ func updateStorage(w http.ResponseWriter, r *http.Request) {
 		if existing {
 			err := mysql.UpdateStorage(storage)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("id", storageID), slog.Any("path", r.URL.Path))
-				response.InternalServer(w, response.Response{Error: "failed to update storage"})
+				log.Error(err, "failed to update storage",
+					log.KVs(map[string]any{
+						"request": data,
+						"storage": storage,
+						"path":    r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"storage": storage,
+							"message": "failed to update storage",
+						},
+					},
+				)
 
 				return
 			}
@@ -185,8 +264,13 @@ func deleteStorage(w http.ResponseWriter, r *http.Request) {
 
 	affected, err := mysql.DeleteStorage(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to delete storage"})
+		log.Error(err, "failed to delete storage",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete storage"})
 
 		return
 	}

@@ -3,7 +3,6 @@ package response
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
@@ -24,14 +23,14 @@ func response(w http.ResponseWriter, status int, data any) {
 		if err == nil {
 			_, err := w.Write(body)
 			if err != nil {
-				log.Error("unable to write data", slog.Any("error", err), slog.Any("data", data))
+				log.Error(err, "unable to write data", log.KV("data", data))
 				return
 			}
 
 			return
 		}
 
-		log.Error("unable to encode data", slog.Any("error", err), slog.Any("data", data))
+		log.Error(err, "unable to encode data", log.KV("data", data))
 
 		return
 	}

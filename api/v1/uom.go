@@ -1,9 +1,9 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -37,7 +37,7 @@ func getUOMs(w http.ResponseWriter, r *http.Request) {
 
 	list, err := getList(r, mysql.GetUOMByID, mysql.ListUOM)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err, "failed to retrieve uoms", log.KV("path", r.URL.Path))
 		response.InternalServer(w, nil)
 
 		return
@@ -62,30 +62,42 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
 	if len(body) == 0 {
-		log.Error("missing request body", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
-	ok, errors := validator.ValidateUOM(body)
+	ok, validationErrors := validator.ValidateUOM(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
 	}
 
 	data, err := apischema.NewUOM(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -102,8 +114,21 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 	for _, uom := range uoms {
 		existing, err := mysql.UOMNameExists(uom.Name)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("uom", uom), slog.Any("request", uoms), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if role name exists", Details: uom})
+			log.Error(err, "failed to validate if uom name exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"uom":     uom,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"uom":     uom,
+						"message": "failed to validate if uom name exists",
+					},
+				})
 
 			return
 		}
@@ -111,8 +136,22 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		if !existing {
 			_, err = mysql.NewUOM(uom)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("uom", uom), slog.Any("request", uoms))
-				response.InternalServer(w, response.Response{Error: "failed to create new uom", Details: uom})
+				log.Error(err, "failed to create new uom",
+					log.KVs(map[string]any{
+						"uom":  uom,
+						"path": r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"uom":     uom,
+							"message": "failed to create new uom",
+						},
+					},
+				)
 
 				return
 			}
@@ -130,16 +169,29 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+
+		return
+	}
+
+	if len(body) == 0 {
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
 	data, err := apischema.NewUOM(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
 	}
@@ -157,8 +209,21 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 
 		existing, err := mysql.UOMIDExists(uomID)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("uom", uom), slog.Any("request", uoms), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if uom id exists"})
+			log.Error(err, "failed to validate if uom id exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"uom":     uom,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"uom":     uom,
+						"message": "failed to validate if uom id exists",
+					},
+				})
 
 			return
 		}
@@ -166,8 +231,23 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 		if existing {
 			err = mysql.UpdateUOM(uom)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("id", uomID), slog.Any("uom", uom), slog.Any("request", uoms), slog.Any("path", r.URL.Path))
-				response.InternalServer(w, response.Response{Error: "failed to update uom"})
+				log.Error(err, "failed to update uom",
+					log.KVs(map[string]any{
+						"request": data,
+						"uom":     uom,
+						"path":    r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"uom":     uom,
+							"message": "failed to update uom",
+						},
+					},
+				)
 
 				return
 			}
@@ -188,8 +268,13 @@ func deleteUOM(w http.ResponseWriter, r *http.Request) {
 
 	affected, err := mysql.DeleteUOM(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to delete uom"})
+		log.Error(err, "failed to delete uom",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete uom"})
 
 		return
 	}

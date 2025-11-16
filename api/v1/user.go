@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"fmt"
+	"errors"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -46,7 +45,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 
 	list, err := getList(r, mysql.GetUserByID, mysql.ListUser)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err, "failed to retrieve users", log.KV("path", r.URL.Path))
 		response.InternalServer(w, nil)
 	}
 
@@ -80,30 +79,42 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
 	if len(body) == 0 {
-		log.Error("missing request body", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
-	ok, errors := validator.ValidateUser(body)
+	ok, validationErrors := validator.ValidateUser(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
 	}
 
 	data, err := apischema.NewUser(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -123,8 +134,21 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		existing, err := mysql.UserExists(user)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if user exists", Details: user})
+			log.Error(err, "failed to validate if user exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"user":    user,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"user":    user,
+						"message": "failed to validate if user exists",
+					},
+				})
 
 			return
 		}
@@ -132,8 +156,22 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		if !existing {
 			_, err = mysql.NewUser(user)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("user", user), slog.Any("request", users))
-				response.InternalServer(w, response.Response{Error: "failed create new user account", Details: user})
+				log.Error(err, "failed to create new user",
+					log.KVs(map[string]any{
+						"user": user,
+						"path": r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"user":    user,
+							"message": "failed to create new user",
+						},
+					},
+				)
 
 				return
 			}
@@ -154,15 +192,28 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+
+		return
+	}
+
+	if len(body) == 0 {
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
 	data, err := apischema.NewUser(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -180,12 +231,23 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, user := range users {
-		userID := fmt.Sprint(user.ID)
-
 		existing, err := mysql.UserIDExists(user.ID)
 		if err != nil {
-			log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
-			response.InternalServer(w, response.Response{Error: "failed to validate if user id exists"})
+			log.Error(err, "failed to validate if user id exists",
+				log.KVs(map[string]any{
+					"request": string(body),
+					"user":    user,
+					"path":    r.URL.Path,
+				}),
+			)
+			response.InternalServer(w,
+				response.Response{
+					Error: err.Error(),
+					Details: map[string]any{
+						"user":    user,
+						"message": "failed to validate if user id exists",
+					},
+				})
 
 			return
 		}
@@ -193,8 +255,23 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		if existing {
 			err = mysql.UpdateUser(user)
 			if err != nil {
-				log.Error(err.Error(), slog.Any("id", userID), slog.Any("path", r.URL.Path))
-				response.InternalServer(w, response.Response{Error: "failed to update user account"})
+				log.Error(err, "failed to update user",
+					log.KVs(map[string]any{
+						"request": data,
+						"user":    user,
+						"path":    r.URL.Path,
+					}),
+				)
+				response.InternalServer(w,
+					response.Response{
+						Error: err.Error(),
+						Details: map[string]any{
+							"request": data,
+							"user":    user,
+							"message": "failed to update user",
+						},
+					},
+				)
 
 				return
 			}
@@ -215,7 +292,12 @@ func activateUserAccount(w http.ResponseWriter, r *http.Request) {
 
 	err = mysql.ActivateUser(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to activate user account",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to activate user account"})
 
 		return
@@ -237,8 +319,13 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	err = mysql.DeleteUser(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", id), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to delete user account"})
+		log.Error(err, "failed to delete user",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
+		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete user"})
 
 		return
 	}

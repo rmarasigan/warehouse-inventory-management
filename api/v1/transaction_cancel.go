@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -22,42 +24,49 @@ func transactionCancelHandler(w http.ResponseWriter, r *http.Request) {
 func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	idParam, ok := requestutils.HasQueryParam(r, "id")
-	if !ok {
-		err := "missing 'id' from request query"
-		log.Error(err, slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: err})
-
-		return
-	}
-
-	id, err := strconv.Atoi(idParam)
+	id, err := parameterID(r)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "the 'id' is invalid; must be an integer"})
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
 	userIDParam, ok := requestutils.HasQueryParam(r, "user_id")
 	if !ok {
-		err := "missing 'user_id' from request query"
-		log.Error(err, slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: err})
+		err := errors.New("missing 'user_id' from request query")
+		log.Error(err, "query parameter 'user_id' is required", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: err.Error()})
 
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "the 'user_id' is invalid; must be an integer"})
+		log.Error(err, "failed to parse 'user_id' query parameter",
+			log.KVs(map[string]any{
+				"id":   userIDParam,
+				"path": r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: "invalid 'user_id' value; must be an integer"})
 		return
 	}
 
 	transaction, err := mysql.GetTransactionByID(id)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to fetch transaction " + idParam})
+		log.Error(err, "failed to retrieve transaction",
+			log.KVs(map[string]any{
+				"id":   id,
+				"path": r.URL.Path,
+			}),
+		)
+
+		response.InternalServer(w,
+			response.Response{
+				Error:   err.Error(),
+				Details: "failed to fetch transaction " + fmt.Sprint(id),
+			},
+		)
+
 		return
 	}
 
@@ -78,7 +87,15 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		// Fetch the item information.
 		item, err := mysql.GetItemByID(itemID)
 		if err != nil {
-			log.Warn("failed to fetch item id", slog.Any("error", err.Error()), slog.Int("transaction_id", id), slog.Any("path", r.URL.Path))
+			log.Warn("failed to fetch item id",
+				log.KVs(map[string]any{
+					"error":          err.Error(),
+					"path":           r.URL.Path,
+					"item_id":        itemID,
+					"transaction_id": transaction.ID,
+				}),
+			)
+
 			failed = append(failed, FailedOrderline{
 				TransactionID: id,
 				ItemID:        itemID,
@@ -93,7 +110,15 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		item.UpdateCancelledQuantity(transaction.Type, orderline.Quantity)
 		err = mysql.UpdateItem(item)
 		if err != nil {
-			log.Warn("failed to update item quantity", slog.Any("error", err.Error()), slog.Int("transaction", id), slog.Int("item_id", item.ID), slog.Any("path", r.URL.Path))
+			log.Warn("failed to update item quantity",
+				log.KVs(map[string]any{
+					"error":          err.Error(),
+					"path":           r.URL.Path,
+					"item_id":        item.ID,
+					"transaction_id": transaction.ID,
+				}),
+			)
+
 			failed = append(failed, FailedOrderline{
 				TransactionID: id,
 				ItemID:        itemID,
@@ -109,7 +134,16 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 		err = mysql.CancelOrderline(orderline)
 		if err != nil {
-			log.Warn("failed to cancel orderline", slog.Any("error", err.Error()), slog.Int("transaction", transaction.ID), slog.Int("item_id", item.ID), slog.Int("orderline_id", orderline.ID), slog.Any("path", r.URL.Path))
+			log.Warn("failed to cancel orderline",
+				log.KVs(map[string]any{
+					"error":          err.Error(),
+					"path":           r.URL.Path,
+					"item_id":        item.ID,
+					"transaction_id": transaction.ID,
+					"orderline_id":   orderline.ID,
+				}),
+			)
+
 			failed = append(failed, FailedOrderline{
 				TransactionID: id,
 				ItemID:        itemID,
@@ -141,10 +175,11 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(failed) > 0 {
-		log.Error("failed to process all orderline/s", slog.Any("errors", failed))
+		err := errors.New("orderlines update not fully successful")
+		log.Error(err, "failed to update orderlines", log.KV("errors", failed))
 		response.MultiStatus(w,
 			response.Response{
-				Error: "failed to process all orderline/s",
+				Error: err.Error(),
 				Details: map[string]any{
 					"failed": failed,
 				},

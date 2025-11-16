@@ -1,8 +1,8 @@
 package v1
 
 import (
+	"errors"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -30,7 +30,10 @@ func getTransactions(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 	list, err := getList(r, mysql.GetTransactionByID, mysql.ListTransaction)
 	if err != nil {
+		log.Error(err, "failed to retrieve transactions", log.KV("path", r.URL.Path))
 		response.InternalServer(w, nil)
+
+		return
 	}
 
 	transactions := convert.SchemaList(list,
@@ -78,30 +81,42 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
 		response.InternalServer(w, response.Response{Error: "failed to read request body"})
 
 		return
 	}
 
 	if len(body) == 0 {
-		log.Error("missing request body", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "request body cannot be empty"})
+		errMsg := errors.New("request body cannot be empty")
+		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
 
 		return
 	}
 
-	ok, errors := validator.ValidateTransaction(body)
+	ok, validationErrors := validator.ValidateTransaction(body)
 	if !ok {
-		log.Error(strings.Join(errors, ", "), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: strings.Join(errors, ", ")})
+		errMsg := errors.New("invalid request body")
+		log.Error(errMsg, strings.Join(validationErrors, ", "),
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
+		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
 
 		return
 	}
 
 	data, err := apischema.NewTransaction(body)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(body)), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(map[string]any{
+				"request": string(body),
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -136,10 +151,22 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		})
 
 	if !transaction.IsValidTransactionType() {
-		err := "transaction '" + transaction.Type + "' is not implemented"
-
-		log.Error(err, slog.Any("request", data), slog.Any("path", r.URL.Path))
-		response.NotImplemented(w, response.Response{Error: err})
+		err := errors.New("transaction '" + transaction.Type + "' is not implemented")
+		log.Error(err, "invalid transaction type",
+			log.KVs(map[string]any{
+				"request": data,
+				"path":    r.URL.Path,
+			}),
+		)
+		response.NotImplemented(w,
+			response.Response{
+				Error: err.Error(),
+				Details: map[string]any{
+					"request": data,
+					"message": "invalid transaction type",
+				},
+			},
+		)
 
 		return
 	}
@@ -147,11 +174,19 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	transactionType := transaction.Type
 	lastInsertID, err := mysql.NewTransaction(transactionType, transaction)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("request", data), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to create transaction",
+			log.KVs(map[string]any{
+				"request": data,
+				"path":    r.URL.Path,
+			}),
+		)
 		response.InternalServer(w,
 			response.Response{
-				Error:   "failed to create transaction",
-				Details: map[string]any{"request": data},
+				Error: err.Error(),
+				Details: map[string]any{
+					"request": data,
+					"message": "failed to create transaction",
+				},
 			},
 		)
 
@@ -164,11 +199,17 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		// Fetch the item information.
 		item, err := mysql.GetItemByID(orderline.ItemID)
 		if err != nil {
-			log.Error("failed to fetch item", slog.Any("error", err.Error()), slog.Any("request", data), slog.Any("path", r.URL.Path))
+			log.Error(err, "failed to fetch orderline item",
+				log.KVs(map[string]any{
+					"request":   data,
+					"orderline": orderline,
+					"path":      r.URL.Path,
+				}),
+			)
 
 			response.InternalServer(w,
 				response.Response{
-					Error: "failed to fetch item",
+					Error: "failed to fetch orderline item",
 					Details: map[string]any{
 						"request":          data,
 						"item_id":          orderline.ItemID,
@@ -184,7 +225,14 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		// Create a new orderline for the said transaction.
 		_, err = mysql.NewOrderline(transactionType, orderline)
 		if err != nil {
-			log.Error("failed to create a new orderline", slog.Any("error", err.Error()), slog.Any("transaction", transaction))
+			log.Error(err, "failed to create a new orderline",
+				log.KVs(map[string]any{
+					"request":     data,
+					"orderline":   orderline,
+					"path":        r.URL.Path,
+					"transaction": transaction,
+				}),
+			)
 			response.InternalServer(w,
 				response.Response{
 					Error: "failed to create a new orderline",
@@ -204,10 +252,17 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 
 		err = mysql.UpdateItem(item)
 		if err != nil {
-			log.Error("failed update item", slog.Any("error", err.Error()), slog.Any("request", data), slog.Any("path", r.URL.Path))
+			log.Error(err, "failed to update item",
+				log.KVs(map[string]any{
+					"request": data,
+					"item":    item,
+					"path":    r.URL.Path,
+				}),
+			)
+
 			response.InternalServer(w,
 				response.Response{
-					Error: "failed update item",
+					Error: "failed to update item",
 					Details: map[string]any{
 						"request":          data,
 						"item_id":          item.ID,

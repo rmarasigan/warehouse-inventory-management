@@ -55,9 +55,23 @@ func Init() {
 }
 
 func attributes(level slog.Level, msg string, args ...any) {
-	var logger = slog.With(
-		slog.Group("keys", args...),
+	var (
+		err any
+		kvs []any
 	)
+
+	for _, arg := range args {
+		kv, ok := arg.(KeyValue)
+		if ok {
+			if kv.Key == "error" {
+				err = kv.Value
+
+			} else {
+				kvs = append(kvs, kv.Attr())
+			}
+		}
+	}
+	logger := slog.With(slog.Group("keys", kvs...))
 
 	switch level {
 	case LevelOK:
@@ -76,7 +90,7 @@ func attributes(level slog.Level, msg string, args ...any) {
 			line = 0
 		}
 
-		logger.With("source", fmt.Sprintf("%s:%d", filename, line)).Error(msg)
+		logger.With(slog.Any("error", err), slog.String("source", fmt.Sprintf("%s:%d", filename, line))).Error(msg)
 	}
 }
 
@@ -92,7 +106,8 @@ func Warn(msg string, args ...any) {
 	attributes(slog.LevelWarn, msg, args...)
 }
 
-func Error(msg string, args ...any) {
+func Error(err error, msg string, args ...any) {
+	args = append(args, KV("error", err.Error()))
 	attributes(slog.LevelError, msg, args...)
 }
 

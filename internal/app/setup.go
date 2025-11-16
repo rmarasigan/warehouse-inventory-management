@@ -68,10 +68,10 @@ func StartServer() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		// Attempt to shutdowm the server gracefully
+		// Attempt to shutdown the server gracefully
 		err := server.Shutdown(ctx)
 		if err != nil {
-			log.Error(err.Error())
+			log.Error(err, "failed to shutdown the server")
 		}
 	}()
 

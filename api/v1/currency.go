@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func currencyHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +30,7 @@ func getCurrencies(w http.ResponseWriter, r *http.Request) {
 
 	list, err := getList(r, mysql.GetCurrency, mysql.ListCurrency)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(err, "failed to retrieve currency")
 		response.InternalServer(w, nil)
 
 		return
@@ -49,15 +51,20 @@ func getCurrencies(w http.ResponseWriter, r *http.Request) {
 func updateCurrency(w http.ResponseWriter, r *http.Request) {
 	defer log.Panic()
 
-	code := strings.TrimSpace(r.URL.Query().Get("code"))
+	code, ok := requestutils.HasQueryParam(r, "code")
+	if !ok {
+		errMsg := errors.New("missing 'code' as the query parameter")
+		log.Error(errMsg, "query parameter 'code' is required", log.KV("path", r.URL.Path))
+		response.BadRequest(w, response.Response{Error: errMsg.Error()})
+	}
+
 	if strings.TrimSpace(code) == "" {
-		log.Error("missing 'code' as the query parameter", slog.Any("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: "missing 'code' as the query parameter"})
+
 	}
 
 	err := mysql.ActivateCurrency(code)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("code", code))
+		log.Error(err, "failed to activate currency", slog.Any("code", code))
 		response.InternalServer(w, nil)
 	}
 

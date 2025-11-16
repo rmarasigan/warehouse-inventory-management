@@ -3,26 +3,32 @@ package v1
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func parameterID(r *http.Request) (int, error) {
-	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
+	idParam, ok := requestutils.HasQueryParam(r, "id")
+	if !ok {
+		errMsg := errors.New("missing 'id' in the request query parameter")
+		log.Error(errMsg, "query parameter 'id' is required", log.KV("path", r.URL.Path))
 
-	if idParam == "" {
-		log.Error("'id' is required", slog.Any("path", r.URL.Path))
-		return 0, errors.New("missing 'id' query parameter")
+		return 0, errMsg
 	}
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		log.Error(err.Error(), slog.Any("id", idParam), slog.Any("path", r.URL.Path))
+		log.Error(err, "failed to parse 'id' query parameter",
+			log.KVs(map[string]any{
+				"id":   idParam,
+				"path": r.URL.Path,
+			}),
+		)
+
 		return 0, errors.New("invalid 'id' value")
 	}
 
@@ -30,40 +36,39 @@ func parameterID(r *http.Request) (int, error) {
 }
 
 func getList[T any](r *http.Request, get func(id int) (T, error), list func() ([]T, error)) ([]T, error) {
-	idParam := strings.TrimSpace(r.URL.Query().Get("id"))
-
 	// Check if the "id" parameter is provided.
-	if idParam != "" {
-		id, err := strconv.Atoi(idParam)
+	idParam, ok := requestutils.HasQueryParam(r, "id")
+	if !ok {
+		// Fetch all the data
+		result, err := list()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("list: %w", err)
 		}
 
-		// Fetch data for the given ID
-		item, err := get(id)
-		if err != nil {
-			return nil, fmt.Errorf("get: %w", err)
+		// Ensure result is not nil
+		if result == nil {
+			result = []T{}
 		}
 
-		// Return an empty array if it is zero value
-		if reflect.ValueOf(item).IsZero() {
-			return []T{}, nil
-		}
-
-		// Wrap the single item in an array
-		return []T{item}, nil
+		return result, nil
 	}
 
-	// Fetch all the data
-	result, err := list()
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		return nil, fmt.Errorf("list: %w", err)
+		return nil, err
 	}
 
-	// Ensure result is not nil
-	if result == nil {
-		result = []T{}
+	// Fetch data for the given ID
+	item, err := get(id)
+	if err != nil {
+		return nil, fmt.Errorf("get: %w", err)
 	}
 
-	return result, nil
+	// Return an empty array if it is zero value
+	if reflect.ValueOf(item).IsZero() {
+		return []T{}, nil
+	}
+
+	// Wrap the single item in an array
+	return []T{item}, nil
 }

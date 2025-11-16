@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"log/slog"
 	"os"
 
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
@@ -26,13 +25,25 @@ func isValid(input []byte, source string) (bool, []string) {
 
 	schema, err := gojsonschema.NewSchema(document)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(input)), slog.String("source", source))
+		log.Error(err, "failed to load json schema file",
+			log.KVs(map[string]any{
+				"request": string(input),
+				"source":  source,
+			}),
+		)
+
 		return false, nil
 	}
 
 	result, err := schema.Validate(request)
 	if err != nil {
-		log.Error(err.Error(), slog.String("request", string(input)), slog.String("source", source))
+		log.Error(err, "failed to load and validate json document",
+			log.KVs(map[string]any{
+				"request": string(input),
+				"source":  source,
+			}),
+		)
+
 		return false, nil
 	}
 

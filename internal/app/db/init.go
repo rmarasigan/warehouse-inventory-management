@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/app/config"
@@ -49,7 +48,7 @@ func Initialize() {
 	defer func() {
 		err := db.Close()
 		if err != nil {
-			log.Error("failed to close database connection", slog.Any("error", err.Error()))
+			log.Error(err, "failed to close database connection")
 		}
 	}()
 
