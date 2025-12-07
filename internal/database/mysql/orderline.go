@@ -42,6 +42,6 @@ func CancelOrderline(orderline schema.Orderline) error {
 	return UpdateRecordByID(OrderlineTable, orderline, "is_voided", "updated_by")
 }
 
-func AddOrderlineNote(orderline schema.Orderline) error {
+func UpdateOrderlineNote(orderline schema.Orderline) error {
 	return UpdateRecordByID(OrderlineTable, orderline, "note", "updated_by")
 }

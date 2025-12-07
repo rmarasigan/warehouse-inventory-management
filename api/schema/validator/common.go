@@ -26,7 +26,7 @@ func isValid(input []byte, source string) (bool, []string) {
 	schema, err := gojsonschema.NewSchema(document)
 	if err != nil {
 		log.Error(err, "failed to load json schema file",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(input),
 				"source":  source,
 			}),
@@ -38,7 +38,7 @@ func isValid(input []byte, source string) (bool, []string) {
 	result, err := schema.Validate(request)
 	if err != nil {
 		log.Error(err, "failed to load and validate json document",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(input),
 				"source":  source,
 			}),

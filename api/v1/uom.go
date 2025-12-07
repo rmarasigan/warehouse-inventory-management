@@ -80,7 +80,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		errMsg := errors.New("invalid request body")
 		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -93,7 +93,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewUOM(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -115,7 +115,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		existing, err := mysql.UOMNameExists(uom.Name)
 		if err != nil {
 			log.Error(err, "failed to validate if uom name exists",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request": string(body),
 					"uom":     uom,
 					"path":    r.URL.Path,
@@ -137,7 +137,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 			_, err = mysql.NewUOM(uom)
 			if err != nil {
 				log.Error(err, "failed to create new uom",
-					log.KVs(map[string]any{
+					log.KVs(log.Map{
 						"uom":  uom,
 						"path": r.URL.Path,
 					}),
@@ -186,7 +186,7 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewUOM(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -210,7 +210,7 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 		existing, err := mysql.UOMIDExists(uomID)
 		if err != nil {
 			log.Error(err, "failed to validate if uom id exists",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request": string(body),
 					"uom":     uom,
 					"path":    r.URL.Path,
@@ -232,7 +232,7 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 			err = mysql.UpdateUOM(uom)
 			if err != nil {
 				log.Error(err, "failed to update uom",
-					log.KVs(map[string]any{
+					log.KVs(log.Map{
 						"request": data,
 						"uom":     uom,
 						"path":    r.URL.Path,
@@ -269,7 +269,7 @@ func deleteUOM(w http.ResponseWriter, r *http.Request) {
 	affected, err := mysql.DeleteUOM(id)
 	if err != nil {
 		log.Error(err, "failed to delete uom",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   id,
 				"path": r.URL.Path,
 			}),

@@ -2,9 +2,7 @@ package v1
 
 import (
 	"errors"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -14,6 +12,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func transactionHandler(w http.ResponseWriter, r *http.Request) {
@@ -79,32 +78,16 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
-		return
-	}
-
-	ok, validationErrors := validator.ValidateTransaction(body)
-	if !ok {
-		errMsg := errors.New("invalid request body")
-		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
+	if err != nil && len(validationErrors) > 0 {
+		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
 
 		return
 	}
@@ -112,11 +95,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewTransaction(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
+			log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
 		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
@@ -153,11 +132,8 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	if !transaction.IsValidTransactionType() {
 		err := errors.New("transaction '" + transaction.Type + "' is not implemented")
 		log.Error(err, "invalid transaction type",
-			log.KVs(map[string]any{
-				"request": data,
-				"path":    r.URL.Path,
-			}),
-		)
+			log.KVs(log.Map{"request": data, "path": r.URL.Path}))
+
 		response.NotImplemented(w,
 			response.Response{
 				Error: err.Error(),
@@ -175,11 +151,8 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	lastInsertID, err := mysql.NewTransaction(transactionType, transaction)
 	if err != nil {
 		log.Error(err, "failed to create transaction",
-			log.KVs(map[string]any{
-				"request": data,
-				"path":    r.URL.Path,
-			}),
-		)
+			log.KVs(log.Map{"request": data, "path": r.URL.Path}))
+
 		response.InternalServer(w,
 			response.Response{
 				Error: err.Error(),
@@ -200,12 +173,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		item, err := mysql.GetItemByID(orderline.ItemID)
 		if err != nil {
 			log.Error(err, "failed to fetch orderline item",
-				log.KVs(map[string]any{
-					"request":   data,
-					"orderline": orderline,
-					"path":      r.URL.Path,
-				}),
-			)
+				log.KVs(log.Map{"request": data, "orderline": orderline, "path": r.URL.Path}))
 
 			response.InternalServer(w,
 				response.Response{
@@ -226,7 +194,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		_, err = mysql.NewOrderline(transactionType, orderline)
 		if err != nil {
 			log.Error(err, "failed to create a new orderline",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request":     data,
 					"orderline":   orderline,
 					"path":        r.URL.Path,
@@ -253,7 +221,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		err = mysql.UpdateItem(item)
 		if err != nil {
 			log.Error(err, "failed to update item",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request": data,
 					"item":    item,
 					"path":    r.URL.Path,

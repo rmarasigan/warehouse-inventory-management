@@ -17,12 +17,15 @@ func GetRoleByName(name string) (schema.Role, error) {
 	return RetrieveItemByField[schema.Role](RoleTable, "name", name, "LOWER(?)")
 }
 
-// NewRole inserts a new role information into the 'role' table.
+// NewRoleIfNotExists inserts a new role information into the 'role' table
+// if it does not exist.
 //
 // Parameter:
 //   - role: The role information that will be inserted.
-func NewRole(role schema.Role) (int64, error) {
-	return InsertRecord(RoleTable, role, "name")
+func NewRoleIfNotExists(role schema.Role) (int64, error) {
+	fields := []string{"name"}
+
+	return InsertIfNotExists(RoleTable, role, "name", fields...)
 }
 
 // UpdateRole updates/modifies the existing role information in the 'role'

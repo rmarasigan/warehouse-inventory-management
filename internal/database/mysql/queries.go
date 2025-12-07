@@ -139,6 +139,67 @@ func InsertRecord(table string, record any, fields ...string) (int64, error) {
 	return result.LastInsertId()
 }
 
+// InsertIfNotExists inserts a record into a table if a specific field value does not already exist.
+//
+// Parameters:
+//   - table: The name of the database to update.
+//   - record: The record to update, represented as a struct.
+//   - uniqueField: The field to check for existence (e.g., "name").
+//   - fields: The columns to insert (must include uniqueField).
+func InsertIfNotExists(table string, record any, uniqueField string, fields ...string) (int64, error) {
+	if len(fields) == 0 {
+		return 0, fmt.Errorf("must specify at least one field")
+	}
+
+	if uniqueField == "" {
+		return 0, fmt.Errorf("uniqueField must be specified")
+	}
+
+	// Build column names and placeholders
+	columns := strings.Join(fields, ", ")
+
+	var placeholders []string
+	for _, field := range fields {
+		placeholders = append(placeholders, ":"+field)
+	}
+
+	// Build the SQL query using WHERE NOT EXISTS
+	query := fmt.Sprintf(
+		`INSERT INTO %s (%s)
+		 SELECT %s
+		 WHERE NOT EXISTS (
+		   SELECT 1 FROM %s WHERE %s = :%s
+		 );`,
+		table,
+		columns,
+		strings.Join(placeholders, ", "),
+		table,
+		uniqueField,
+		uniqueField,
+	)
+
+	trail.Info("query: %v", query)
+
+	result, err := database.NamedExec(query, record)
+	if err != nil {
+		trail.Error("[insert-if-not-exists] %s: %s", err.Error(), query)
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	if rowsAffected == 0 {
+		// Record already exists
+		trail.Info("record already exist")
+		return 0, nil
+	}
+
+	return result.LastInsertId()
+}
+
 // UpdateRecordByID updates a specific record in the given table by its ID. The fields are
 // to be updated are dynamically specified in the 'fields' slice.
 //

@@ -12,8 +12,9 @@ func GetStorageByName(name string) (schema.Storage, error) {
 	return RetrieveItemByField[schema.Storage](StorageTable, "name", name, "LOWER(?)")
 }
 
-func NewStorage(storage schema.Storage) (int64, error) {
-	return InsertRecord(StorageTable, storage, "code", "name", "description")
+func NewStorageIfNotExists(storage schema.Storage) (int64, error) {
+	field := []string{"name"}
+	return InsertIfNotExists(StorageTable, storage, "name", field...)
 }
 
 func UpdateStorage(storage schema.Storage) error {

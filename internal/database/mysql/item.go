@@ -1,6 +1,8 @@
 package mysql
 
-import "github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
+import (
+	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
+)
 
 func ListItem() ([]schema.Item, error) { return FetchItems[schema.Item](ItemTable) }
 
@@ -25,6 +27,21 @@ func NewItem(item schema.Item) (int64, error) {
 	}
 
 	return InsertRecord(ItemTable, item, fields...)
+}
+
+func NewItemIfNotExists(item schema.Item) (int64, error) {
+	fields := []string{
+		"name",
+		"description",
+		"quantity",
+		"unit_price",
+		"uom_id",
+		"stock_status",
+		"storage_id",
+		"created_by",
+	}
+
+	return InsertIfNotExists(ItemTable, item, "name", fields...)
 }
 
 func UpdateItem(item schema.Item) error {

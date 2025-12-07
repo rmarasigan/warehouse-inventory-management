@@ -42,7 +42,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
 		log.Error(err, "failed to parse 'user_id' query parameter",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   userIDParam,
 				"path": r.URL.Path,
 			}),
@@ -54,7 +54,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	transaction, err := mysql.GetTransactionByID(id)
 	if err != nil {
 		log.Error(err, "failed to retrieve transaction",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   id,
 				"path": r.URL.Path,
 			}),
@@ -88,7 +88,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		item, err := mysql.GetItemByID(itemID)
 		if err != nil {
 			log.Warn("failed to fetch item id",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        itemID,
@@ -111,7 +111,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		err = mysql.UpdateItem(item)
 		if err != nil {
 			log.Warn("failed to update item quantity",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        item.ID,
@@ -135,7 +135,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		err = mysql.CancelOrderline(orderline)
 		if err != nil {
 			log.Warn("failed to cancel orderline",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        item.ID,

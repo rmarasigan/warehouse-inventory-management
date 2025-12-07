@@ -1,11 +1,8 @@
 package v1
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -15,6 +12,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 	dbutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/db_utils"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func itemHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,45 +67,24 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
-		return
-	}
-
-	ok, validationErrors := validator.ValidateItem(body)
-	if !ok {
-		errMsg := errors.New("invalid request body")
-		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateItem)
+	if err != nil && len(validationErrors) > 0 {
+		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
 
 		return
 	}
 
 	data, err := apischema.NewItem(body)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+		log.Error(err, "failed to unmarshal request body", log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
 	}
@@ -126,49 +103,21 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, item := range items {
-		existing, err := mysql.ItemNameExists(item.Name)
+		_, err := mysql.NewItemIfNotExists(item)
 		if err != nil {
-			log.Error(err, "failed to validate if item name exists",
-				log.KVs(map[string]any{
-					"request": string(body),
-					"item":    item,
-					"path":    r.URL.Path,
-				}),
-			)
+			log.Error(err, "failed to create item", log.KVs(log.Map{"item": item, "path": r.URL.Path}))
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
+						"request": data,
 						"item":    item,
-						"message": "failed to validate if item name exists",
+						"message": "failed to create item",
 					},
-				})
+				},
+			)
 
 			return
-		}
-
-		if !existing {
-			_, err = mysql.NewItem(item)
-			if err != nil {
-				log.Error(err, "failed to create item",
-					log.KVs(map[string]any{
-						"item": item,
-						"path": r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"item":    item,
-							"message": "failed to create item",
-						},
-					},
-				)
-
-				return
-			}
 		}
 	}
 
@@ -181,31 +130,18 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
-		return
-	}
-
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
 	data, err := apischema.NewItem(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+			log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
 	}
@@ -223,52 +159,22 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, item := range items {
-		itemID := item.ID
-
-		existing, err := mysql.ItemIDExists(itemID)
+		err = mysql.UpdateItem(item)
 		if err != nil {
-			log.Error(err, "failed to validate if item id exists",
-				log.KVs(map[string]any{
-					"request": string(body),
-					"item":    item,
-					"path":    r.URL.Path,
-				}),
-			)
+			log.Error(err, "failed to update item", log.KVs(log.Map{"request": data, "item": item, "path": r.URL.Path}))
+
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
-						"item":    item,
-						"message": "failed to validate if item id exists",
-					},
-				})
-
-			return
-		}
-
-		if existing {
-			err = mysql.UpdateItem(item)
-			if err != nil {
-				log.Error(err, "failed to update item",
-					log.KVs(map[string]any{
 						"request": data,
 						"item":    item,
-						"path":    r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"item":    item,
-							"message": "failed to update item",
-						},
+						"message": "failed to update item",
 					},
-				)
+				},
+			)
 
-				return
-			}
+			return
 		}
 	}
 
@@ -286,12 +192,7 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 
 	affected, err := mysql.DeleteItem(id)
 	if err != nil {
-		log.Error(err, "failed to delete item",
-			log.KVs(map[string]any{
-				"id":   id,
-				"path": r.URL.Path,
-			}),
-		)
+		log.Error(err, "failed to delete item", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
 		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete item"})
 
 		return

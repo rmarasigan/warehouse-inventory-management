@@ -97,7 +97,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		errMsg := errors.New("invalid request body")
 		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -110,7 +110,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewUser(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -135,7 +135,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		existing, err := mysql.UserExists(user)
 		if err != nil {
 			log.Error(err, "failed to validate if user exists",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request": string(body),
 					"user":    user,
 					"path":    r.URL.Path,
@@ -157,7 +157,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 			_, err = mysql.NewUser(user)
 			if err != nil {
 				log.Error(err, "failed to create new user",
-					log.KVs(map[string]any{
+					log.KVs(log.Map{
 						"user": user,
 						"path": r.URL.Path,
 					}),
@@ -209,7 +209,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewUser(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -234,7 +234,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 		existing, err := mysql.UserIDExists(user.ID)
 		if err != nil {
 			log.Error(err, "failed to validate if user id exists",
-				log.KVs(map[string]any{
+				log.KVs(log.Map{
 					"request": string(body),
 					"user":    user,
 					"path":    r.URL.Path,
@@ -256,7 +256,7 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 			err = mysql.UpdateUser(user)
 			if err != nil {
 				log.Error(err, "failed to update user",
-					log.KVs(map[string]any{
+					log.KVs(log.Map{
 						"request": data,
 						"user":    user,
 						"path":    r.URL.Path,
@@ -293,7 +293,7 @@ func activateUserAccount(w http.ResponseWriter, r *http.Request) {
 	err = mysql.ActivateUser(id)
 	if err != nil {
 		log.Error(err, "failed to activate user account",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   id,
 				"path": r.URL.Path,
 			}),
@@ -320,7 +320,7 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	err = mysql.DeleteUser(id)
 	if err != nil {
 		log.Error(err, "failed to delete user",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   id,
 				"path": r.URL.Path,
 			}),

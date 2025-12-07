@@ -1,11 +1,8 @@
 package v1
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -14,6 +11,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func roleHandler(w http.ResponseWriter, r *http.Request) {
@@ -67,32 +65,16 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
-		return
-	}
-
-	ok, validationErrors := validator.ValidateRole(body)
-	if !ok {
-		errMsg := errors.New("invalid request body")
-		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateItem)
+	if err != nil && len(validationErrors) > 0 {
+		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
 
 		return
 	}
@@ -100,12 +82,9 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	data, err := apischema.NewRole(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
+			log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 
 		return
 	}
@@ -117,49 +96,23 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, role := range roles {
-		existing, err := mysql.RoleNameExists(role.Name)
+		_, err = mysql.NewRoleIfNotExists(role)
 		if err != nil {
-			log.Error(err, "failed to validate if role name exists",
-				log.KVs(map[string]any{
-					"request": string(body),
-					"role":    role,
-					"path":    r.URL.Path,
-				}),
-			)
+			log.Error(err, "failed to create role",
+				log.KVs(log.Map{"role": role, "path": r.URL.Path}))
+
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
+						"request": data,
 						"role":    role,
-						"message": "failed to validate if role name exists",
+						"message": "failed to create role",
 					},
-				})
+				},
+			)
 
-			break
-		}
-
-		if !existing {
-			_, err = mysql.NewRole(role)
-			if err != nil {
-				log.Error(err, "failed to create role",
-					log.KVs(map[string]any{
-						"role": role,
-						"path": r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"role":    role,
-							"message": "failed to create role",
-						},
-					},
-				)
-
-				break
-			}
+			return
 		}
 	}
 
@@ -175,18 +128,16 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
 	data, err := apischema.NewRole(body)
 	if err != nil {
 		log.Error(err, "failed to unmarshal request body",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"request": string(body),
 				"path":    r.URL.Path,
 			}),
@@ -204,52 +155,28 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, role := range roles {
-		roleID := role.ID
-
-		existing, err := mysql.RoleIDExists(roleID)
+		err = mysql.UpdateRole(role)
 		if err != nil {
-			log.Error(err, "failed to validate if role id exists",
-				log.KVs(map[string]any{
-					"request": string(body),
+			log.Error(err, "failed to update role",
+				log.KVs(log.Map{
+					"request": data,
 					"role":    role,
 					"path":    r.URL.Path,
 				}),
 			)
+
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
-						"role":    role,
-						"message": "failed to validate if role id exists",
-					},
-				})
-
-			return
-		}
-
-		if existing {
-			err = mysql.UpdateRole(role)
-			if err != nil {
-				log.Error(err, "failed to update role",
-					log.KVs(map[string]any{
 						"request": data,
 						"role":    role,
-						"path":    r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"role":    role,
-							"message": "failed to update role",
-						},
+						"message": "failed to update role",
 					},
-				)
+				},
+			)
 
-				return
-			}
+			return
 		}
 	}
 
@@ -270,7 +197,7 @@ func deleteRole(w http.ResponseWriter, r *http.Request) {
 	affected, err := mysql.DeleteRole(id)
 	if err != nil {
 		log.Error(err, "failed to delete role",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   id,
 				"path": r.URL.Path,
 			}),

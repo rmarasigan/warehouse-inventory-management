@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -56,10 +55,6 @@ func updateCurrency(w http.ResponseWriter, r *http.Request) {
 		errMsg := errors.New("missing 'code' as the query parameter")
 		log.Error(errMsg, "query parameter 'code' is required", log.KV("path", r.URL.Path))
 		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-	}
-
-	if strings.TrimSpace(code) == "" {
-
 	}
 
 	err := mysql.ActivateCurrency(code)

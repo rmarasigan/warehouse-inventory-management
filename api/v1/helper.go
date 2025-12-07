@@ -23,7 +23,7 @@ func parameterID(r *http.Request) (int, error) {
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		log.Error(err, "failed to parse 'id' query parameter",
-			log.KVs(map[string]any{
+			log.KVs(log.Map{
 				"id":   idParam,
 				"path": r.URL.Path,
 			}),

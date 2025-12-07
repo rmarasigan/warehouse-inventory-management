@@ -2,6 +2,8 @@ package log
 
 import "log/slog"
 
+type Map map[string]any
+
 type KeyValue struct {
 	Key   string
 	Value any
