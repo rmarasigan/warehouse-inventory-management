@@ -74,6 +74,6 @@ func CancelTransaction(transaction schema.Transaction) error {
 	return UpdateRecordByID(TransactionTable, transaction, "is_cancelled", "updated_by")
 }
 
-func AddTransactionNote(transaction schema.Transaction) error {
+func UpdateTransactionNote(transaction schema.Transaction) error {
 	return UpdateRecordByID(TransactionTable, transaction, "note", "updated_by")
 }
