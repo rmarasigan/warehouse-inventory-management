@@ -36,6 +36,25 @@ func response(w http.ResponseWriter, status int, data any) {
 	}
 }
 
+func buildDetails(extras ...any) any {
+	if len(extras) == 1 {
+		return extras[0]
+
+	} else if len(extras) > 1 {
+		return extras
+	}
+
+	return nil
+}
+
+func New(message string, extras ...any) Response {
+	return Response{Message: message, Details: buildDetails(extras...)}
+}
+
+func NewError(err error, extras ...any) Response {
+	return Response{Error: err.Error(), Details: buildDetails(extras...)}
+}
+
 func Success(w http.ResponseWriter, data any) {
 	response(w, http.StatusOK, data)
 }

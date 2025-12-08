@@ -39,7 +39,7 @@ func getRoles(w http.ResponseWriter, r *http.Request) {
 	list, err := getList(r, mysql.GetRoleByID, mysql.ListRole)
 	if err != nil {
 		log.Error(err, "failed to retrieve roles", log.KV("path", r.URL.Path))
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to retrieve roles"))
 
 		return
 	}
@@ -67,21 +67,21 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateItem)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
+		response.BadRequest(w, response.NewError(err, validationErrors))
 
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewRole)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -97,15 +97,12 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 			log.Error(err, "failed to create role",
 				log.KVs(log.Map{"role": role, "path": r.URL.Path}))
 
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"role":    role,
-						"message": "failed to create role",
-					},
-				},
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"role":    role,
+					"message": "failed to create role",
+				}),
 			)
 
 			return
@@ -126,13 +123,13 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewRole)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -147,22 +144,14 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 		err = mysql.UpdateRole(role)
 		if err != nil {
 			log.Error(err, "failed to update role",
-				log.KVs(log.Map{
+				log.KVs(log.Map{"request": data, "role": role, "path": r.URL.Path}))
+
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
 					"request": data,
 					"role":    role,
-					"path":    r.URL.Path,
+					"message": "failed to update role",
 				}),
-			)
-
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"role":    role,
-						"message": "failed to update role",
-					},
-				},
 			)
 
 			return
@@ -179,22 +168,17 @@ func deleteRole(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	affected, err := mysql.DeleteRole(id)
 	if err != nil {
-		log.Error(err, "failed to delete role",
-			log.KVs(log.Map{
-				"id":   id,
-				"path": r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete role"})
+		log.Error(err, "failed to delete role", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
+		response.InternalServer(w, response.NewError(err, "failed to delete role"))
 
 		return
 	}
 
-	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
+	response.Success(w, response.New(fmt.Sprintf("%d row(s) affected", affected)))
 }

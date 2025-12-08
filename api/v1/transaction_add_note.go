@@ -27,27 +27,27 @@ func transactionNote(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
+		response.BadRequest(w, response.NewError(err, validationErrors))
 
 		return
 	}
 
 	shared, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewNote)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -60,22 +60,15 @@ func transactionNote(w http.ResponseWriter, r *http.Request) {
 	err = mysql.UpdateTransactionNote(transaction)
 	if err != nil {
 		log.Error(err, "failed to add transaction note",
-			log.KVs(log.Map{
-				"id":      id,
-				"path":    r.URL.Path,
-				"request": string(body),
+			log.KVs(log.Map{"id": id, "path": r.URL.Path, "request": string(body)}))
+
+		response.InternalServer(w, response.NewError(err,
+			map[string]any{
+				"transaction_id": id,
+				"note":           shared.Note,
+				"message":        "failed to add transaction note",
 			}),
 		)
-
-		response.InternalServer(w,
-			response.Response{
-				Error: err.Error(),
-				Details: map[string]any{
-					"transaction_id": id,
-					"note":           shared.Note,
-					"message":        "failed to add transaction note",
-				},
-			})
 
 		return
 	}

@@ -3,7 +3,6 @@ package v1
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -26,7 +25,7 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
@@ -34,38 +33,23 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		err := errors.New("missing 'user_id' from request query")
 		log.Error(err, "query parameter 'user_id' is required", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
-		log.Error(err, "failed to parse 'user_id' query parameter",
-			log.KVs(log.Map{
-				"id":   userIDParam,
-				"path": r.URL.Path,
-			}),
-		)
-		response.BadRequest(w, response.Response{Error: "invalid 'user_id' value; must be an integer"})
+		log.Error(err, "failed to parse 'user_id' query parameter", log.KVs(log.Map{"id": userIDParam, "path": r.URL.Path}))
+		response.BadRequest(w, response.NewError(errors.New("invalid 'user_id' value; must be an integer")))
+
 		return
 	}
 
 	transaction, err := mysql.GetTransactionByID(id)
 	if err != nil {
-		log.Error(err, "failed to retrieve transaction",
-			log.KVs(log.Map{
-				"id":   id,
-				"path": r.URL.Path,
-			}),
-		)
-
-		response.InternalServer(w,
-			response.Response{
-				Error:   err.Error(),
-				Details: "failed to fetch transaction " + fmt.Sprint(id),
-			},
-		)
+		log.Error(err, "failed to retrieve transaction", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
+		response.InternalServer(w, response.NewError(err, "failed to retrieve transaction "+fmt.Sprint(id)))
 
 		return
 	}
@@ -134,8 +118,8 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 		err = mysql.CancelOrderline(orderline)
 		if err != nil {
-			log.Warn("failed to cancel orderline",
-				log.KVs(log.Map{
+			log.Warn("failed to cancel orderline", log.KVs(
+				log.Map{
 					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        item.ID,
@@ -160,15 +144,20 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 	err = mysql.CancelTransaction(transaction)
 	if err != nil {
-		log.Warn("failed to cancel transaction", slog.Any("error", err.Error()), slog.Int("transaction", transaction.ID), slog.Any("path", r.URL.Path))
-		response.InternalServer(w,
-			response.Response{
-				Error: "failed to cancel transaction",
-				Details: map[string]any{
-					"transaction_id":   transaction.ID,
-					"transaction_type": transaction.Type,
-				},
-			},
+		log.Warn("failed to cancel transaction", log.KVs(
+			log.Map{
+				"error":       err.Error(),
+				"path":        r.URL.Path,
+				"transaction": transaction.ID,
+			}),
+		)
+
+		response.InternalServer(w, response.NewError(err,
+			map[string]any{
+				"message":          "failed to cancel transaction",
+				"transaction_id":   transaction.ID,
+				"transaction_type": transaction.Type,
+			}),
 		)
 
 		return
@@ -177,24 +166,15 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 	if len(failed) > 0 {
 		err := errors.New("orderlines update not fully successful")
 		log.Error(err, "failed to update orderlines", log.KV("errors", failed))
-		response.MultiStatus(w,
-			response.Response{
-				Error: err.Error(),
-				Details: map[string]any{
-					"failed": failed,
-				},
-			},
-		)
+		response.MultiStatus(w, response.NewError(err, map[string]any{"failed": failed}))
 
 		return
 	}
 
-	response.Success(w,
-		response.Response{
-			Details: map[string]any{
-				"transaction_id": transaction.ID,
-				"is_cancelled":   true,
-			},
-		},
+	response.Success(w, response.New("successfully updated",
+		map[string]any{
+			"transaction_id": transaction.ID,
+			"is_cancelled":   true,
+		}),
 	)
 }

@@ -37,7 +37,7 @@ func getItems(w http.ResponseWriter, r *http.Request) {
 	list, err := getList(r, mysql.GetItemByID, mysql.ListItem)
 	if err != nil {
 		log.Error(err, "failed to retrieve items", log.KV("path", r.URL.Path))
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to retrieve items"))
 
 		return
 	}
@@ -69,21 +69,21 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateItem)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
+		response.BadRequest(w, response.NewError(err, validationErrors))
 
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewItem)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -104,15 +104,12 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 		_, err := mysql.NewItemIfNotExists(item)
 		if err != nil {
 			log.Error(err, "failed to create item", log.KVs(log.Map{"item": item, "path": r.URL.Path}))
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"item":    item,
-						"message": "failed to create item",
-					},
-				},
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"item":    item,
+					"message": "failed to create item",
+				}),
 			)
 
 			return
@@ -130,13 +127,13 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewItem)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -156,16 +153,12 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 		err = mysql.UpdateItem(item)
 		if err != nil {
 			log.Error(err, "failed to update item", log.KVs(log.Map{"request": data, "item": item, "path": r.URL.Path}))
-
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"item":    item,
-						"message": "failed to update item",
-					},
-				},
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"item":    item,
+					"message": "failed to update item",
+				}),
 			)
 
 			return
@@ -180,17 +173,17 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	affected, err := mysql.DeleteItem(id)
 	if err != nil {
 		log.Error(err, "failed to delete item", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
-		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete item"})
+		response.InternalServer(w, response.NewError(err, "failed to delete item"))
 
 		return
 	}
 
-	response.Success(w, response.Response{Message: fmt.Sprintf("%d rows(s) affected", affected)})
+	response.Success(w, response.New(fmt.Sprintf("%d rows(s) affected", affected)))
 }

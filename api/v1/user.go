@@ -45,7 +45,7 @@ func getUsers(w http.ResponseWriter, r *http.Request) {
 	list, err := getList(r, mysql.GetUserByID, mysql.ListUser)
 	if err != nil {
 		log.Error(err, "failed to retrieve users", log.KV("path", r.URL.Path))
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to retrieve users"))
 	}
 
 	users := convert.SchemaList(list, func(user schema.User) apischema.User {
@@ -78,21 +78,21 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
+		response.BadRequest(w, response.NewError(err, validationErrors))
 
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUser)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -111,20 +111,14 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		existing, err := mysql.UserExists(user)
 		if err != nil {
 			log.Error(err, "failed to validate if user exists",
-				log.KVs(log.Map{
-					"request": string(body),
+				log.KVs(log.Map{"request": string(body), "user": user, "path": r.URL.Path}))
+
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
 					"user":    user,
-					"path":    r.URL.Path,
+					"message": "failed to validate if user exists",
 				}),
 			)
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"user":    user,
-						"message": "failed to validate if user exists",
-					},
-				})
 
 			return
 		}
@@ -132,21 +126,13 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		if !existing {
 			_, err = mysql.NewUser(user)
 			if err != nil {
-				log.Error(err, "failed to create new user",
-					log.KVs(log.Map{
-						"user": user,
-						"path": r.URL.Path,
+				log.Error(err, "failed to create new user", log.KVs(log.Map{"user": user, "path": r.URL.Path}))
+				response.InternalServer(w, response.NewError(err,
+					map[string]any{
+						"request": data,
+						"user":    user,
+						"message": "failed to create new user",
 					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"user":    user,
-							"message": "failed to create new user",
-						},
-					},
 				)
 
 				return
@@ -168,13 +154,13 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUser)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -192,18 +178,13 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	for _, user := range users {
 		err = mysql.UpdateUser(user)
 		if err != nil {
-			log.Error(err, "failed to update user",
-				log.KVs(log.Map{"request": data, "user": user, "path": r.URL.Path}))
-
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"user":    user,
-						"message": "failed to update user",
-					},
-				},
+			log.Error(err, "failed to update user", log.KVs(log.Map{"request": data, "user": user, "path": r.URL.Path}))
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"user":    user,
+					"message": "failed to update user",
+				}),
 			)
 
 			return
@@ -218,16 +199,14 @@ func activateUserAccount(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	err = mysql.ActivateUser(id)
 	if err != nil {
-		log.Error(err, "failed to activate user account",
-			log.KVs(log.Map{"id": id, "path": r.URL.Path}))
-
-		response.InternalServer(w, response.Response{Error: "failed to activate user account"})
+		log.Error(err, "failed to activate user account", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
+		response.InternalServer(w, response.NewError(err, "failed to activate user account"))
 
 		return
 	}
@@ -242,16 +221,14 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	err = mysql.DeleteUser(id)
 	if err != nil {
-		log.Error(err, "failed to delete user",
-			log.KVs(log.Map{"id": id, "path": r.URL.Path}))
-
-		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete user"})
+		log.Error(err, "failed to delete user", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
+		response.InternalServer(w, response.NewError(err, "failed to delete user"))
 
 		return
 	}

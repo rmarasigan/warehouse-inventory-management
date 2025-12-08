@@ -36,7 +36,7 @@ func getUOMs(w http.ResponseWriter, r *http.Request) {
 	list, err := getList(r, mysql.GetUOMByID, mysql.ListUOM)
 	if err != nil {
 		log.Error(err, "failed to retrieve uoms", log.KV("path", r.URL.Path))
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to retrieve uoms"))
 
 		return
 	}
@@ -60,21 +60,21 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
+		response.BadRequest(w, response.NewError(err, validationErrors))
 
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUOM)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -89,18 +89,13 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 	for _, uom := range uoms {
 		_, err = mysql.NewUOMIfNotExists(uom)
 		if err != nil {
-			log.Error(err, "failed to create new uom",
-				log.KVs(log.Map{"uom": uom, "path": r.URL.Path}))
-
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"uom":     uom,
-						"message": "failed to create new uom",
-					},
-				},
+			log.Error(err, "failed to create new uom", log.KVs(log.Map{"uom": uom, "path": r.URL.Path}))
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"uom":     uom,
+					"message": "failed to create new uom",
+				}),
 			)
 
 			return
@@ -118,13 +113,13 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 
 	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUOM)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		response.BadRequest(w, response.NewError(err, "failed to unmarshal request body"))
 		return
 	}
 
@@ -139,18 +134,13 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 	for _, uom := range uoms {
 		err = mysql.UpdateUOM(uom)
 		if err != nil {
-			log.Error(err, "failed to update uom",
-				log.KVs(log.Map{"request": data, "uom": uom, "path": r.URL.Path}))
-
-			response.InternalServer(w,
-				response.Response{
-					Error: err.Error(),
-					Details: map[string]any{
-						"request": data,
-						"uom":     uom,
-						"message": "failed to update uom",
-					},
-				},
+			log.Error(err, "failed to update uom", log.KVs(log.Map{"request": data, "uom": uom, "path": r.URL.Path}))
+			response.InternalServer(w, response.NewError(err,
+				map[string]any{
+					"request": data,
+					"uom":     uom,
+					"message": "failed to update uom",
+				}),
 			)
 
 			return
@@ -165,18 +155,17 @@ func deleteUOM(w http.ResponseWriter, r *http.Request) {
 
 	id, err := parameterID(r)
 	if err != nil {
-		response.BadRequest(w, response.Response{Error: err.Error()})
+		response.BadRequest(w, response.NewError(err))
 		return
 	}
 
 	affected, err := mysql.DeleteUOM(id)
 	if err != nil {
-		log.Error(err, "failed to delete uom",
-			log.KVs(log.Map{"id": id, "path": r.URL.Path}))
-		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete uom"})
+		log.Error(err, "failed to delete uom", log.KVs(log.Map{"id": id, "path": r.URL.Path}))
+		response.InternalServer(w, response.NewError(err, "failed to delete uom"))
 
 		return
 	}
 
-	response.Success(w, response.Response{Message: fmt.Sprintf("%d row(s) affected", affected)})
+	response.Success(w, response.New(fmt.Sprintf("%d row(s) affected", affected)))
 }

@@ -30,7 +30,7 @@ func getCurrencies(w http.ResponseWriter, r *http.Request) {
 	list, err := getList(r, mysql.GetCurrency, mysql.ListCurrency)
 	if err != nil {
 		log.Error(err, "failed to retrieve currency")
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to retrieve currency"))
 
 		return
 	}
@@ -54,13 +54,15 @@ func updateCurrency(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		errMsg := errors.New("missing 'code' as the query parameter")
 		log.Error(errMsg, "query parameter 'code' is required", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
+		response.BadRequest(w, response.NewError(errMsg))
+
+		return
 	}
 
 	err := mysql.ActivateCurrency(code)
 	if err != nil {
 		log.Error(err, "failed to activate currency", slog.Any("code", code))
-		response.InternalServer(w, nil)
+		response.InternalServer(w, response.NewError(err, "failed to activate currency"))
 	}
 
 	response.Success(w, nil)
