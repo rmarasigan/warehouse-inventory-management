@@ -12,7 +12,10 @@ func GetUOMByName(name string) (schema.UOM, error) {
 	return RetrieveItemByField[schema.UOM](UoMTable, "name", name, "LOWER(?)")
 }
 
-func NewUOM(uom schema.UOM) (int64, error) { return InsertRecord(UoMTable, uom, "code", "name") }
+func NewUOMIfNotExists(uom schema.UOM) (int64, error) {
+	field := []string{"code", "name"}
+	return InsertIfNotExists(UoMTable, uom, "name", field...)
+}
 
 func UpdateUOM(uom schema.UOM) error { return UpdateRecordByID(UoMTable, uom, "code", "name") }
 

@@ -1,11 +1,8 @@
 package v1
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
 	apischema "github.com/rmarasigan/warehouse-inventory-management/api/schema"
@@ -14,6 +11,7 @@ import (
 	"github.com/rmarasigan/warehouse-inventory-management/internal/database/schema"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/convert"
 	"github.com/rmarasigan/warehouse-inventory-management/internal/utils/log"
+	requestutils "github.com/rmarasigan/warehouse-inventory-management/internal/utils/request_utils"
 )
 
 func uomHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,46 +58,23 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
+		response.BadRequest(w, response.Response{Error: err.Error()})
+		return
+	}
+
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
+	if err != nil && len(validationErrors) > 0 {
+		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
+		response.BadRequest(w, response.Response{Error: err.Error(), Details: validationErrors})
 
 		return
 	}
 
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
-		return
-	}
-
-	ok, validationErrors := validator.ValidateUOM(body)
-	if !ok {
-		errMsg := errors.New("invalid request body")
-		log.Error(errMsg, strings.Join(validationErrors, ", "),
-			log.KVs(log.Map{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.BadRequest(w, response.Response{Error: errMsg.Error(), Details: strings.Join(validationErrors, ", ")})
-
-		return
-	}
-
-	data, err := apischema.NewUOM(body)
+	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUOM)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(log.Map{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
-
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 		return
 	}
 
@@ -112,49 +87,23 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, uom := range uoms {
-		existing, err := mysql.UOMNameExists(uom.Name)
+		_, err = mysql.NewUOMIfNotExists(uom)
 		if err != nil {
-			log.Error(err, "failed to validate if uom name exists",
-				log.KVs(log.Map{
-					"request": string(body),
-					"uom":     uom,
-					"path":    r.URL.Path,
-				}),
-			)
+			log.Error(err, "failed to create new uom",
+				log.KVs(log.Map{"uom": uom, "path": r.URL.Path}))
+
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
+						"request": data,
 						"uom":     uom,
-						"message": "failed to validate if uom name exists",
+						"message": "failed to create new uom",
 					},
-				})
+				},
+			)
 
 			return
-		}
-
-		if !existing {
-			_, err = mysql.NewUOM(uom)
-			if err != nil {
-				log.Error(err, "failed to create new uom",
-					log.KVs(log.Map{
-						"uom":  uom,
-						"path": r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"uom":     uom,
-							"message": "failed to create new uom",
-						},
-					},
-				)
-
-				return
-			}
 		}
 	}
 
@@ -167,32 +116,15 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 		log.Panic()
 	}()
 
-	body, err := io.ReadAll(r.Body)
+	body, err := requestutils.ReadBody(r)
 	if err != nil {
-		log.Error(err, "failed to read request body", log.KV("path", r.URL.Path))
-		response.InternalServer(w, response.Response{Error: "failed to read request body"})
-
+		response.BadRequest(w, response.Response{Error: err.Error()})
 		return
 	}
 
-	if len(body) == 0 {
-		errMsg := errors.New("request body cannot be empty")
-		log.Error(errMsg, "missing request body", log.KV("path", r.URL.Path))
-		response.BadRequest(w, response.Response{Error: errMsg.Error()})
-
-		return
-	}
-
-	data, err := apischema.NewUOM(body)
+	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewUOM)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(log.Map{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
-
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 		return
 	}
 
@@ -205,52 +137,23 @@ func updateUOM(w http.ResponseWriter, r *http.Request) {
 	})
 
 	for _, uom := range uoms {
-		uomID := uom.ID
-
-		existing, err := mysql.UOMIDExists(uomID)
+		err = mysql.UpdateUOM(uom)
 		if err != nil {
-			log.Error(err, "failed to validate if uom id exists",
-				log.KVs(log.Map{
-					"request": string(body),
-					"uom":     uom,
-					"path":    r.URL.Path,
-				}),
-			)
+			log.Error(err, "failed to update uom",
+				log.KVs(log.Map{"request": data, "uom": uom, "path": r.URL.Path}))
+
 			response.InternalServer(w,
 				response.Response{
 					Error: err.Error(),
 					Details: map[string]any{
-						"uom":     uom,
-						"message": "failed to validate if uom id exists",
-					},
-				})
-
-			return
-		}
-
-		if existing {
-			err = mysql.UpdateUOM(uom)
-			if err != nil {
-				log.Error(err, "failed to update uom",
-					log.KVs(log.Map{
 						"request": data,
 						"uom":     uom,
-						"path":    r.URL.Path,
-					}),
-				)
-				response.InternalServer(w,
-					response.Response{
-						Error: err.Error(),
-						Details: map[string]any{
-							"request": data,
-							"uom":     uom,
-							"message": "failed to update uom",
-						},
+						"message": "failed to update uom",
 					},
-				)
+				},
+			)
 
-				return
-			}
+			return
 		}
 	}
 
@@ -269,11 +172,7 @@ func deleteUOM(w http.ResponseWriter, r *http.Request) {
 	affected, err := mysql.DeleteUOM(id)
 	if err != nil {
 		log.Error(err, "failed to delete uom",
-			log.KVs(log.Map{
-				"id":   id,
-				"path": r.URL.Path,
-			}),
-		)
+			log.KVs(log.Map{"id": id, "path": r.URL.Path}))
 		response.InternalServer(w, response.Response{Error: err.Error(), Details: "failed to delete uom"})
 
 		return

@@ -13,7 +13,7 @@ func GetStorageByName(name string) (schema.Storage, error) {
 }
 
 func NewStorageIfNotExists(storage schema.Storage) (int64, error) {
-	field := []string{"name"}
+	field := []string{"code", "name", "description"}
 	return InsertIfNotExists(StorageTable, storage, "name", field...)
 }
 

@@ -36,3 +36,18 @@ func ReadBody(request *http.Request) ([]byte, error) {
 
 	return body, nil
 }
+
+func Unmarshal[T any](path string, body []byte, fn func([]byte) (T, error)) (T, error) {
+	data, err := fn(body)
+	if err != nil {
+		log.Error(err, "failed to unmarshal request body",
+			log.KVs(log.Map{"request": string(body), "path": path}))
+
+		// Cannot return 'nil' because 'T' may not be nillable type.
+		// We need to return a zero value for 'T' instead.
+		var zero T
+		return zero, err
+	}
+
+	return data, nil
+}

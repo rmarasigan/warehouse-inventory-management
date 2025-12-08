@@ -45,12 +45,10 @@ func orderlineNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shared, err := apischema.NewNote(body)
+	shared, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewNote)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-
 		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
+		return
 	}
 
 	orderline := schema.Orderline{

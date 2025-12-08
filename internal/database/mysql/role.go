@@ -24,7 +24,6 @@ func GetRoleByName(name string) (schema.Role, error) {
 //   - role: The role information that will be inserted.
 func NewRoleIfNotExists(role schema.Role) (int64, error) {
 	fields := []string{"name"}
-
 	return InsertIfNotExists(RoleTable, role, "name", fields...)
 }
 

@@ -79,13 +79,9 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := apischema.NewRole(body)
+	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewRole)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
-
 		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
-
 		return
 	}
 
@@ -134,16 +130,9 @@ func updateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := apischema.NewRole(body)
+	data, err := requestutils.Unmarshal(r.URL.Path, body, apischema.NewRole)
 	if err != nil {
-		log.Error(err, "failed to unmarshal request body",
-			log.KVs(log.Map{
-				"request": string(body),
-				"path":    r.URL.Path,
-			}),
-		)
-		response.InternalServer(w, response.Response{Error: "failed to unmarshal request body"})
-
+		response.BadRequest(w, response.Response{Error: "failed to unmarshal request body"})
 		return
 	}
 
