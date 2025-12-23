@@ -373,25 +373,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalServerError'
-    put:
-      summary: A transaction that is going to be updated.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/transaction'
-        responses:
-        '200':
-          description: Successfully created a transaction.
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
   
-  /transaction/add-note:
+  /transaction/note:
   put:
-    summary: Add a transaction note.
+    summary: Add/update a transaction note.
     parameters:
       - name: id
         in: query
@@ -404,7 +389,7 @@ paths:
             $ref: '#/components/schemas/note'
     responses:
       '200':
-        description: Successfully updated the note.
+        description: Successfully added/updated the note.
       '400':
         $ref: '#/components/responses/BadRequest'
       '500':
@@ -412,7 +397,7 @@ paths:
 
   /transaction/orderline-note:
   put:
-    summary: Add an orderline note.
+    summary: Add/update an orderline note.
     parameters:
       - name: id
         in: query
@@ -425,7 +410,7 @@ paths:
             $ref: '#/components/schema/note'
     responses:
       '200':
-        description: Successfully updated the orderline note.
+        description: Successfully added/updated the orderline note.
       '400':
         $ref: '#/components/responses/BadRequest'
       '500':

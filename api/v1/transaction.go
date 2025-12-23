@@ -22,6 +22,9 @@ func transactionHandler(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		createTransaction(w, r)
+
+	case http.MethodPut:
+		updateTransactionNote(w, r)
 	}
 }
 
@@ -84,7 +87,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateTransaction)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
 		response.BadRequest(w, response.NewError(err, validationErrors))
@@ -219,4 +222,24 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.Success(w, nil)
+}
+
+func updateTransactionNote(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		_ = r.Body.Close()
+		log.Panic()
+	}()
+
+	updateNote(w, r,
+		func(id int, shared apischema.Shared) any {
+			return schema.Transaction{
+				ID:        id,
+				Note:      dbutils.SetString(shared.Note),
+				UpdatedBy: dbutils.SetInt(shared.UserID),
+			}
+		},
+		func(record any) error {
+			return mysql.UpdateTransactionNote(record.(schema.Transaction))
+		},
+	)
 }

@@ -71,7 +71,7 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateItem)
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateRole)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
 		response.BadRequest(w, response.NewError(err, validationErrors))

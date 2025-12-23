@@ -18,18 +18,18 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 	}
 
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		users:              userHandler,
-		activateUser:       userHandler,
-		roles:              roleHandler,
-		storages:           storageHandler,
-		uoms:               uomHandler,
-		currencies:         currencyHandler,
-		activateCurrency:   currencyHandler,
-		items:              itemHandler,
-		orderlineAddNote:   orderlineHandler,
-		transaction:        transactionHandler,
-		transactionAddNote: transactionAddNoteHandler,
-		transactionCancel:  transactionCancelHandler,
+		users:             userHandler,
+		activateUser:      userHandler,
+		roles:             roleHandler,
+		storages:          storageHandler,
+		uoms:              uomHandler,
+		currencies:        currencyHandler,
+		activateCurrency:  currencyHandler,
+		items:             itemHandler,
+		transaction:       transactionHandler,
+		transactionNote:   transactionHandler,
+		transactionCancel: transactionCancelHandler,
+		orderlinesNote:    orderlineHandler,
 	}
 
 	// Handle the request if the segment is valid

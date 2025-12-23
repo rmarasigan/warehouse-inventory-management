@@ -36,6 +36,6 @@ type (
 	}
 )
 
-func (t Transaction) IsValidTransactionType() bool {
+func (t *Transaction) IsValidTransactionType() bool {
 	return (t.Type == "inbound") || (t.Type == "outbound")
 }

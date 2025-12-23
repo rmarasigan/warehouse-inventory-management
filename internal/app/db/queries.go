@@ -83,8 +83,7 @@ const (
 										UNIQUE KEY idx_reference (reference),
 										INDEX idx_created_by (created_by),
 										INDEX id_updated_by (updated_by),
-										CONSTRAINT fk_transaction_creator FOREIGN KEY (created_by) REFERENCES users(id),
-										CONSTRAINT fk_transaction_updater FOREIGN KEY (updated_by) REFERENCES users(id)
+										CONSTRAINT fk_transaction_creator FOREIGN KEY (created_by) REFERENCES users(id)
 									);`
 
 	orderline string = `CREATE TABLE IF NOT EXISTS orderline (
@@ -106,8 +105,7 @@ const (
 									INDEX id_updated_by (updated_by),
 									CONSTRAINT fk_orderline_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id),
 									CONSTRAINT fk_orderline_item FOREIGN KEY (item_id) REFERENCES item(id),
-									CONSTRAINT fk_orderline_creator FOREIGN KEY (created_by) REFERENCES users(id),
-									CONSTRAINT fk_orderline_updater FOREIGN KEY (updated_by) REFERENCES users(id)
+									CONSTRAINT fk_orderline_creator FOREIGN KEY (created_by) REFERENCES users(id)
 								);`
 
 	roleInsert string = `INSERT INTO role (name)

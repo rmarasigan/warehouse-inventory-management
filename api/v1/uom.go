@@ -64,7 +64,7 @@ func createUOM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateStorage)
+	validationErrors, err := requestutils.ValidateRequest(body, validator.ValidateUOM)
 	if err != nil && len(validationErrors) > 0 {
 		log.Error(err, validationErrors, log.KVs(log.Map{"request": string(body), "path": r.URL.Path}))
 		response.BadRequest(w, response.NewError(err, validationErrors))
