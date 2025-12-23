@@ -132,6 +132,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	if !transaction.IsValidTransactionType() {
 		err := errors.New("transaction '" + transaction.Type + "' is not implemented")
 		log.Error(err, "invalid transaction type", log.KVs(log.Map{"request": data, "path": r.URL.Path}))
+
 		response.NotImplemented(w, response.NewError(err,
 			map[string]any{
 				"request": data,
@@ -178,6 +179,25 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Do not process and return an error when the requested quantity exceeds the
+		// available stock.
+		if transactionType == "outbound" && orderline.Quantity > item.Quantity {
+			errMsg := errors.New("requested quantity exceeds available stock")
+			log.Error(errMsg, "failed to process transaction",
+				log.KVs(log.Map{"request": data, "orderline": orderline, "path": r.URL.Path}))
+
+			response.InternalServer(w, response.NewError(errMsg,
+				map[string]any{
+					"message":          "failed to process transaction",
+					"request":          data,
+					"item_id":          orderline.ItemID,
+					"transaction_type": transactionType,
+				}),
+			)
+
+			return
+		}
+
 		// Create a new orderline for the said transaction.
 		_, err = mysql.NewOrderline(transactionType, orderline)
 		if err != nil {
@@ -202,6 +222,9 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Updates the item's quantity based on the transaction type:
+		// - inbound:  item.Quantity + orderline.Quantity
+		// - outbound: item.Quantity - orderline.Quantity
 		item.UpdateQuantity(transactionType, orderline.Quantity)
 
 		err = mysql.UpdateItem(item)
