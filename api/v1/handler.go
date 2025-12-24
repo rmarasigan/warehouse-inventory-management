@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/rmarasigan/warehouse-inventory-management/api/response"
@@ -12,8 +13,8 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 	var method = r.Method
 
 	// Validate the method and path
-	if !IsValidPathMethod(method, segment) {
-		response.BadRequest(w, response.Response{Error: "provided path or method is invalid"})
+	if !isValidPathMethod(method, segment) {
+		response.BadRequest(w, response.NewError(errors.New("provided path or method is invalid")))
 		return
 	}
 
@@ -39,5 +40,5 @@ func Handler(w http.ResponseWriter, r *http.Request, segment string) {
 		return
 	}
 
-	response.NotFound(w, response.Response{Message: "unrecognized path"})
+	response.NotFound(w, response.New("unrecognized path"))
 }

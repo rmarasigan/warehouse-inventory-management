@@ -23,7 +23,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			v1.Handler(w, r, segment)
 
 		default:
-			response.NotFound(w, response.Response{Message: "unrecognized version"})
+			response.NotFound(w, response.New("unrecognized version"))
 		}
 	}
 }

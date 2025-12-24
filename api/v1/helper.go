@@ -26,11 +26,7 @@ func parameterID(r *http.Request) (int, error) {
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		log.Error(err, "failed to parse 'id' query parameter",
-			log.KVs(log.Map{
-				"id":   idParam,
-				"path": r.URL.Path,
-			}),
-		)
+			log.KVs(log.Map{"id": idParam, "path": r.URL.Path}))
 
 		return 0, errors.New("invalid 'id' value")
 	}
@@ -58,6 +54,7 @@ func getList[T any](r *http.Request, get func(id int) (T, error), list func() ([
 
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
+		log.Warn("failed to convert to type int", log.KV("id", idParam))
 		return nil, err
 	}
 

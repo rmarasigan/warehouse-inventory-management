@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"log/slog"
 	"net/http"
 	"slices"
 
@@ -23,7 +22,7 @@ const (
 	transactionCancel string = transaction + "/cancel"
 )
 
-func IsValidPathMethod(method, segment string) bool {
+func isValidPathMethod(method, segment string) bool {
 	var valid = map[string][]string{
 		users:             {http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
 		activateUser:      {http.MethodPut},
@@ -45,10 +44,10 @@ func IsValidPathMethod(method, segment string) bool {
 			return true
 		}
 
-		log.Warn("invalid method for path", slog.String("path", segment), slog.String("method", method))
+		log.Warn("invalid method for path", log.KVs(log.Map{"path": segment, "method": method}))
 		return false
 	}
 
-	log.Warn("invalid path", slog.String("path", segment), slog.String("method", method))
+	log.Warn("invalid path", log.KVs(log.Map{"path": segment, "method": method}))
 	return false
 }

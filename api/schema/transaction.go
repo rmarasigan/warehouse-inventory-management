@@ -46,7 +46,8 @@ func NewTransaction(data []byte) (Transaction, error) {
 	return Transaction{}, err
 }
 
-func (t Transaction) GenerateReference() string {
+// GenerateReference creates a random UUID string.
+func (t *Transaction) GenerateReference() string {
 	reference, err := uuid.NewV7()
 	if err != nil {
 		return uuid.New().String()

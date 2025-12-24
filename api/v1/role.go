@@ -94,9 +94,7 @@ func createRole(w http.ResponseWriter, r *http.Request) {
 	for _, role := range roles {
 		_, err = mysql.NewRoleIfNotExists(role)
 		if err != nil {
-			log.Error(err, "failed to create role",
-				log.KVs(log.Map{"role": role, "path": r.URL.Path}))
-
+			log.Error(err, "failed to create role", log.KVs(log.Map{"role": role, "path": r.URL.Path}))
 			response.InternalServer(w, response.NewError(err,
 				map[string]any{
 					"request": data,

@@ -71,9 +71,8 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		// Fetch the item information.
 		item, err := mysql.GetItemByID(itemID)
 		if err != nil {
-			log.Warn("failed to fetch item id",
+			log.Error(err, "failed to fetch item id",
 				log.KVs(log.Map{
-					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        itemID,
 					"transaction_id": transaction.ID,
@@ -94,9 +93,8 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 		item.UpdateCancelledQuantity(transaction.Type, orderline.Quantity)
 		err = mysql.UpdateItem(item)
 		if err != nil {
-			log.Warn("failed to update item quantity",
+			log.Error(err, "failed to update item quantity",
 				log.KVs(log.Map{
-					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        item.ID,
 					"transaction_id": transaction.ID,
@@ -118,9 +116,8 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 		err = mysql.CancelOrderline(orderline)
 		if err != nil {
-			log.Warn("failed to cancel orderline", log.KVs(
+			log.Error(err, "failed to cancel orderline", log.KVs(
 				log.Map{
-					"error":          err.Error(),
 					"path":           r.URL.Path,
 					"item_id":        item.ID,
 					"transaction_id": transaction.ID,
@@ -144,13 +141,8 @@ func cancelTransaction(w http.ResponseWriter, r *http.Request) {
 
 	err = mysql.CancelTransaction(transaction)
 	if err != nil {
-		log.Warn("failed to cancel transaction", log.KVs(
-			log.Map{
-				"error":       err.Error(),
-				"path":        r.URL.Path,
-				"transaction": transaction.ID,
-			}),
-		)
+		log.Error(err, "failed to cancel transaction", log.KVs(
+			log.Map{"path": r.URL.Path, "transaction": transaction.ID}))
 
 		response.InternalServer(w, response.NewError(err,
 			map[string]any{

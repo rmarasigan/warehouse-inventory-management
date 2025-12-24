@@ -209,6 +209,7 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 					"transaction": transaction,
 				}),
 			)
+
 			response.InternalServer(w, response.NewError(err,
 				map[string]any{
 					"message":          "failed to create a new orderline",

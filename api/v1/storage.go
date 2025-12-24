@@ -92,9 +92,7 @@ func createStorage(w http.ResponseWriter, r *http.Request) {
 	for _, storage := range storages {
 		_, err = mysql.NewStorageIfNotExists(storage)
 		if err != nil {
-			log.Error(err, "failed to create storage",
-				log.KVs(log.Map{"storage": storage, "path": r.URL.Path}))
-
+			log.Error(err, "failed to create storage", log.KVs(log.Map{"storage": storage, "path": r.URL.Path}))
 			response.InternalServer(w, response.NewError(err,
 				map[string]any{
 					"request": data,
